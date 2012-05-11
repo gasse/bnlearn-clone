@@ -49,14 +49,26 @@ inter.iamb = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
 # MMPC frontend.
 mmpc = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE,
-    strict = FALSE) {
+    strict = FALSE, undirected = FALSE) {
 
   bnlearn(x = x, cluster = cluster, whitelist = whitelist,
     blacklist = blacklist, test = test, alpha = alpha, B = B,
     method = "mmpc", debug = debug, optimized = optimized,
-    strict = strict, undirected = TRUE)
+    strict = strict, undirected = undirected)
 
 }#MMPC
+
+# HPC frontend.
+hpc = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
+    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE,
+    strict = FALSE, undirected = FALSE, nbr.join = "OR") {
+
+  bnlearn(x = x, cluster = cluster, whitelist = whitelist,
+    blacklist = blacklist, test = test, alpha = alpha, B = B,
+    method = "hpc", debug = debug, optimized = optimized,
+    strict = strict, undirected = undirected, nbr.join = nbr.join)
+
+}#HPC
 
 # ARACNE frontend.
 aracne = function(x, whitelist = NULL, blacklist = NULL, mi = NULL,
@@ -131,7 +143,24 @@ mmhc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
 
 }#MMHC
 
-# Frontend for the Markov blanket learning algotrithms.
+# H2PC frontend.
+h2pc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
+    score = NULL, alpha = 0.05, B = NULL, ..., tabu = 100,
+    max.tabu = 15, optimized = TRUE, strict = FALSE, debug = FALSE,
+    nbr.join = "OR") {
+
+  restrict.args = list(test = test, alpha = alpha, B = B, strict = strict,
+        nbr.join = nbr.join)
+  maximize.args = c(list(...), tabu = tabu, max.tabu = max.tabu)
+
+  hybrid.search(x, whitelist = whitelist, blacklist = blacklist,
+    restrict = "hpc", maximize = "tabu", restrict.args = restrict.args,
+    maximize.args = maximize.args, score = score, optimized = optimized,
+    debug = debug)
+
+}#H2PC
+
+# Frontend for the Markov blanket learning algorithms.
 learn.mb = function(x, node, method, whitelist = NULL, blacklist = NULL,
     test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
 
@@ -140,6 +169,16 @@ learn.mb = function(x, node, method, whitelist = NULL, blacklist = NULL,
     optimized = optimized)
 
 }#LEARN.MB
+
+# Frontend for the parents and children learning algorithms.
+learn.pc = function(x, node, method, whitelist = NULL, blacklist = NULL,
+    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
+
+  pc.backend(x, node = node, method = method, whitelist = whitelist,
+    blacklist = blacklist, test = test, alpha = alpha, B = B, debug = debug,
+    optimized = optimized)
+
+}#LEARN.PC
 
 # naive Bayes frontend.
 naive.bayes = function(training, explanatory, data) {

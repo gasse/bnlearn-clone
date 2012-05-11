@@ -42,13 +42,13 @@ double *fact = NULL, *res = NULL, observed = 0;
 int *n = NULL, *ncolt = NULL, *nrowt = NULL, *workspace = NULL;
 int *num = INTEGER(length), *nr = INTEGER(lx), *nc = INTEGER(ly);
 int *xx = INTEGER(x), *yy = INTEGER(y), *B = INTEGER(samples);
-int i = 0, k = 0, enough = ceil(NUM(alpha) * (*B)) + 1;
+int i = 0, k = 0, npermuts = 0, enough = ceil(NUM(alpha) * (*B)) + 1;
 SEXP result;
 
   /* allocate and initialize the result. */
-  PROTECT(result = allocVector(REALSXP, 2));
+  PROTECT(result = allocVector(REALSXP, 3));
   res = REAL(result);
-  res[0] = res[1] = 0;
+  res[0] = res[1] = res[2] = 0; // initial test score / p-value / nb permutations
 
   /* allocate and compute the factorials needed by rcont2. */
   allocfact(*num);
@@ -97,6 +97,8 @@ SEXP result;
 
         }/*THEN*/
 
+        npermuts++;
+
       }/*FOR*/
 
       observed = 2 * observed;
@@ -116,6 +118,8 @@ SEXP result;
 
         }/*THEN*/
 
+        npermuts++;
+
       }/*FOR*/
 
       break;
@@ -124,9 +128,11 @@ SEXP result;
 
   PutRNGstate();
 
-  /* save the observed value of the statistic and the corresponding p-value. */
-  NUM(result) =  observed;
-  REAL(result)[1] =  REAL(result)[1] / (*B);
+  /* save the observed value of the statistic, the corresponding
+     p-value, and the number of permutations performed. */
+  res[0] = observed;
+  res[1] /= (*B);
+  res[2] = npermuts;
 
   UNPROTECT(1);
 
@@ -143,13 +149,13 @@ int **n = NULL, **ncolt = NULL, **nrowt = NULL, *ncond = NULL, *workspace = NULL
 int *num = INTEGER(length), *B = INTEGER(samples);
 int *nr = INTEGER(lx), *nc = INTEGER(ly), *nl = INTEGER(lz);
 int *xx = INTEGER(x), *yy = INTEGER(y), *zz = INTEGER(z);
-int i = 0, j = 0, k = 0, enough = ceil(NUM(alpha) * (*B)) + 1;
+int i = 0, j = 0, k = 0, npermuts = 0, enough = ceil(NUM(alpha) * (*B)) + 1;
 SEXP result;
 
   /* allocate and initialize the result */
-  PROTECT(result = allocVector(REALSXP, 2));
+  PROTECT(result = allocVector(REALSXP, 3));
   res = REAL(result);
-  res[0] = res[1] = 0;
+  res[0] = res[1] = res[2] = 0; // initial test score / p-value / nb permutations
 
   /* allocate and compute the factorials needed by rcont2. */
   allocfact(*num);
@@ -202,6 +208,7 @@ SEXP result;
 
         }/*THEN*/
 
+        npermuts++;
 
       }/*FOR*/
 
@@ -222,6 +229,8 @@ SEXP result;
           sequential_counter_check(res[1]);
 
         }/*THEN*/
+        
+        npermuts++;
 
       }/*FOR*/
 
@@ -231,9 +240,11 @@ SEXP result;
 
   PutRNGstate();
 
-  /* save the observed value of the statistic and the corresponding p-value. */
+  /* save the observed value of the statistic, the corresponding
+     p-value, and the number of permutations performed. */
   res[0] = observed;
   res[1] /= *B;
+  res[2] = npermuts;
 
   UNPROTECT(1);
 
@@ -434,6 +445,192 @@ SEXP result;
 
 }/*GAUSS_CMCARLO*/
 
+/* unconditional Monte Carlo simulation for discrete tests. */
+SEXP mcarlo_mean(SEXP x, SEXP y, SEXP lx, SEXP ly, SEXP length, SEXP samples,
+    SEXP test) {
+
+double *fact = NULL, *res = NULL, observed = 0;
+int *n = NULL, *ncolt = NULL, *nrowt = NULL, *workspace = NULL;
+int *num = INTEGER(length), *nr = INTEGER(lx), *nc = INTEGER(ly);
+int *xx = INTEGER(x), *yy = INTEGER(y), *B = INTEGER(samples);
+int i = 0, k = 0, npermuts = 0;
+SEXP result;
+
+  /* allocate and initialize the result. */
+  PROTECT(result = allocVector(REALSXP, 3));
+  res = REAL(result);
+  res[0] = res[1] = res[2] = 0; // initial test score / mean score / nb permutations
+
+  /* allocate and compute the factorials needed by rcont2. */
+  allocfact(*num);
+
+  /* allocate and initialize the workspace for rcont2. */
+  workspace = alloc1dcont(*nc);
+
+  /* initialize the contingency table. */
+  n = alloc1dcont(*nr * (*nc));
+
+  /* initialize the marginal frequencies. */
+  nrowt = alloc1dcont(*nr);
+  ncolt = alloc1dcont(*nc);
+
+  /* compute the joint frequency of x and y. */
+  for (k = 0; k < *num; k++)
+    n[CMC(xx[k] - 1, yy[k] - 1, *nr)]++;
+
+  /* compute the marginals. */
+  for (i = 0; i < *nr; i++)
+    for (k = 0; k < *nc; k++) {
+
+      nrowt[i] += n[CMC(i, k, *nr)];
+      ncolt[k] += n[CMC(i, k, *nr)];
+
+    }/*FOR*/
+
+  /* initialize the random number generator. */
+  GetRNGstate();
+  
+  /* pick up the observed value of the test statistic, then generate a set of
+     random contingency tables (given row and column totals) and adds their
+     test scores to compute the mean.*/
+  switch(INT(test)) {
+
+    case MUTUAL_INFORMATION:
+      observed = 2 * _mi(n, nrowt, ncolt, nr, nc, num);
+      
+      for (k = 0; k < *B; k++) {
+        rcont2(nr, nc, nrowt, ncolt, num, fact, workspace, n);
+        res[1] += 2 * _mi(n, nrowt, ncolt, nr, nc, num);
+        npermuts++;
+      }
+
+      break;
+
+    case PEARSON_X2:
+      observed = _x2(n, nrowt, ncolt, nr, nc, num);
+      
+      for (k = 0; k < *B; k++) {
+        rcont2(nr, nc, nrowt, ncolt, num, fact, workspace, n);
+        res[1] += _x2(n, nrowt, ncolt, nr, nc, num);
+        npermuts++;
+      }
+
+      break;
+
+  }/*SWITCH*/
+
+  PutRNGstate();
+
+  /* save the observed and mean values of the statistic,
+     and the number of permutations performed. */
+  res[0] = observed;
+  res[1] /= *B; // mean
+  res[2] = npermuts;
+
+  UNPROTECT(1);
+
+  return result;
+
+}/*MCARLO_MEAN*/
+
+/* conditional Monte Carlo simulation for discrete tests. */
+SEXP cmcarlo_mean(SEXP x, SEXP y, SEXP z, SEXP lx, SEXP ly, SEXP lz,
+    SEXP length, SEXP samples, SEXP test) {
+
+double *fact = NULL, *res = NULL, observed = 0;
+int **n = NULL, **ncolt = NULL, **nrowt = NULL, *ncond = NULL, *workspace = NULL;
+int *num = INTEGER(length), *B = INTEGER(samples);
+int *nr = INTEGER(lx), *nc = INTEGER(ly), *nl = INTEGER(lz);
+int *xx = INTEGER(x), *yy = INTEGER(y), *zz = INTEGER(z);
+int i = 0, j = 0, k = 0, npermuts = 0;
+SEXP result;
+
+  /* allocate and initialize the result */
+  PROTECT(result = allocVector(REALSXP, 3));
+  res = REAL(result);
+  res[0] = res[1] = res[2] = 0; // initial test score / mean score / nb permutations
+
+  /* allocate and compute the factorials needed by rcont2. */
+  allocfact(*num);
+
+  /* allocate and initialize the workspace for rcont2. */
+  workspace = alloc1dcont(*nc);
+
+  /* initialize the contingency table. */
+  n = alloc2dcont(*nl, (*nr) * (*nc));
+
+  /* initialize the marginal frequencies. */
+  nrowt = alloc2dcont(*nl, *nr);
+  ncolt = alloc2dcont(*nl, *nc);
+  ncond = alloc1dcont(*nl);
+
+  /* compute the joint frequency of x and y. */
+  for (k = 0; k < *num; k++)
+    n[zz[k] - 1][CMC(xx[k] - 1, yy[k] - 1, *nr)]++;
+
+  /* compute the marginals. */
+  for (i = 0; i < *nr; i++)
+    for (j = 0; j < *nc; j++)
+      for (k = 0; k < *nl; k++) {
+
+        nrowt[k][i] += n[k][CMC(i, j, *nr)];
+        ncolt[k][j] += n[k][CMC(i, j, *nr)];
+        ncond[k] += n[k][CMC(i, j, *nr)];
+
+      }/*FOR*/
+
+  /* initialize the random number generator. */
+  GetRNGstate();
+  
+  /* pick up the observed value of the test statistic, then generate a set of
+     random contingency tables (given row and column totals) and adds their
+     test scores to compute the mean.*/
+  switch(INT(test)) {
+
+    case MUTUAL_INFORMATION:
+      observed = 2 * _cmi(n, nrowt, ncolt, ncond, nr, nc, nl);
+      
+      for (j = 0; j < *B; j++) {
+      
+        for (k = 0; k < *nl; k++)
+          rcont2(nr, nc, nrowt[k], ncolt[k], &(ncond[k]), fact, workspace, n[k]);
+          
+        res[1] += 2 * _cmi(n, nrowt, ncolt, ncond, nr, nc, nl);
+        npermuts++;
+      }
+
+      break;
+
+    case PEARSON_X2:
+      observed = _cx2(n, nrowt, ncolt, ncond, nr, nc, nl);
+      
+      for (j = 0; j < *B; j++) {
+      
+        for (k = 0; k < *nl; k++)
+          rcont2(nr, nc, nrowt[k], ncolt[k], &(ncond[k]), fact, workspace, n[k]);
+          
+        res[1] += _cx2(n, nrowt, ncolt, ncond, nr, nc, nl);
+        npermuts++;
+      }
+
+      break;
+
+  }/*SWITCH*/
+
+  PutRNGstate();
+
+  /* save the observed and mean values of the statistic,
+     and the number of permutations performed. */
+  res[0] = observed;
+  res[1] /= *B; // mean
+  res[2] = npermuts;
+
+  UNPROTECT(1);
+
+  return result;
+
+}/*CMCARLO_MEAN*/
+
 /* compute the mutual information from the joint and marginal frequencies. */
 static double _mi(int *n, int *nrowt, int *ncolt, int *nrows,
     int *ncols, int *length) {
@@ -539,4 +736,3 @@ double sum = 0;
   return sum;
 
 }/*_COV*/
-

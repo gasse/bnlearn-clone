@@ -181,18 +181,16 @@ fast.ia.markov.blanket = function(x, data, nodes, alpha, B, whitelist, blacklist
     # growing phase.
     # reset the insufficient.data boolean flag.
     insufficient.data = FALSE
+    
+    if (debug)
+      cat("  * checking nodes for association.\n")
 
     # get an association measure for each of the available nodes.
     association = sapply(nodes, conditional.test, x, sx = mb,
-                    test = test, data = data, B = B, alpha = alpha)
-
-    if (debug) {
-
-      cat("  * checking nodes for association.\n")
-      sapply(names(association),
-        function(x) {  cat("    >", x, "has p-value", association[x], ".\n")})
-
-    }#THEN
+                    test = test, data = data, B = B, alpha = alpha, debug = debug)
+    
+    # heuristic 1 : sort by name to be deterministic
+    association = association[order(names(association))]
 
     # stop if there are no candidates for inclusion.
     if (all(association > alpha) || length(nodes) == 0 || is.null(nodes)) break
@@ -210,17 +208,14 @@ fast.ia.markov.blanket = function(x, data, nodes, alpha, B, whitelist, blacklist
 
           if (test %in% available.continuous.tests) {
 
-            cat("    @", node, "included in the markov blanket (p-value:",
-              association[node], ").\n")
+            cat("    @", node, "included in the markov blanket.\n")
 
           }#THEN
           else {
 
-            cat("    @", node, "included in the markov blanket (p-value:",
-              association[node], ", obs/cell:", opc, ").\n")
+            cat("    @", node, "included in the markov blanket (obs/cell:", opc, ").\n")
 
           }#ELSE
-          cat("    > markov blanket now is '", c(mb, node), "'.\n")
 
         }#THEN
 
@@ -250,8 +245,18 @@ fast.ia.markov.blanket = function(x, data, nodes, alpha, B, whitelist, blacklist
     # markov blanket; speculatively adding nodes prevents further
     # optimizations.
     # known.good nodes from backtracking are not to be removed, either.
-    if (length(mb) > 1)
-      sapply(mb[!(mb %in% c(known.good, whitelisted))], del.node, x = x, test = test)
+    if (length(mb) > 1) {
+      
+      to.check = mb[!(mb %in% c(known.good, whitelisted))]
+      
+      # heuristic 2 : order nodes from the last one added to the first one added
+      # this way we are more prone to remove less correlated nodes first
+      if (length(to.check) > 0)
+        to.check = to.check[length(to.check):1]
+      
+      sapply(to.check, del.node, x = x, test = test)
+      
+    }#THEN
 
     # if there are not enough observations and no new node has been included
     # in the markov blanket, stop iterating.

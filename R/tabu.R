@@ -99,7 +99,7 @@ tabu.search = function(x, start, whitelist, blacklist, score,
           extra = extra.args,
           reference = reference.score,
           equivalence = score.equivalence && optimized,
-          updated = (if (optimized) updated else seq(length(nodes))),
+          updated = (if (optimized) updated else seq(length(nodes)) - 1L),
           env = environment(),
           amat = amat,
           cache = cache,
@@ -177,6 +177,22 @@ tabu.search = function(x, start, whitelist, blacklist, score,
                      baseline = -Inf,
                      debug = debug,
                      PACKAGE = "bnlearn")
+    
+      if(bestop$op == FALSE) {
+
+        if (debug) {
+          cat("----------------------------------------------------------------\n")
+          cat("* no more possible operations\n")
+          cat("@ stopping at iteration", iter, ".\n")
+          }#THEN
+
+        # reset the return value to the best network ever found.
+        if (loss.iter > 0)
+          start = best.network
+
+        break
+
+      }#THEN
 
     }#THEN
     else {
@@ -199,9 +215,9 @@ tabu.search = function(x, start, whitelist, blacklist, score,
 
     if (debug) {
 
-      # update the test counter of the network; very useful to check how many
+      # update the score counter of the network; very useful to check how many
       # score comparison has been done up to now.
-      start$learning$ntests = get(".test.counter", envir = .GlobalEnv)
+      start$learning$nscores = get(".score.counter", envir = .GlobalEnv)
 
       cat("----------------------------------------------------------------\n")
       cat("* best operation was: ")
@@ -223,7 +239,7 @@ tabu.search = function(x, start, whitelist, blacklist, score,
     if (iter >= max.iter) {
 
       if (debug)
-        cat("@ stopping at iteration", max.iter, ".\n")
+        cat("@ stopping at iteration", iter, ".\n")
 
       # reset the return value to the best network ever found.
       if (loss.iter > 0)

@@ -1,11 +1,15 @@
 #include "common.h"
 
-/* check neighbourhood sets and markov blanets for consistency.. */
-SEXP bn_recovery(SEXP bn, SEXP strict, SEXP mb, SEXP debug) {
+#define OR_FILTER  0
+#define AND_FILTER 1
+
+
+/* check neighbourhood sets and markov blankets for consistency.. */
+SEXP bn_recovery(SEXP bn, SEXP strict, SEXP mb, SEXP debug, SEXP filter) {
 
 int i = 0, j = 0, k = 0, n = 0, counter = 0;
 short int *checklist = NULL, err = 0;
-int *debuglevel = NULL, *checkmb = NULL;
+int *debuglevel = NULL, *checkmb = NULL, *nbrfilter = NULL;
 SEXP temp, temp2, nodes, elnames = NULL, fixed;
 
   /* get the names of the nodes. */
@@ -15,9 +19,10 @@ SEXP temp, temp2, nodes, elnames = NULL, fixed;
   /* allocate and initialize the checklist. */
   checklist = allocstatus(UPTRI_MATRIX(n));
 
-  /* dereference the debug and mb parameters. */
+  /* dereference the debug, mb and filter parameters. */
   debuglevel = LOGICAL(debug);
   checkmb = LOGICAL(mb);
+  nbrfilter = INTEGER(filter);
 
   if (*debuglevel > 0) {
 
@@ -140,19 +145,48 @@ SEXP temp, temp2, nodes, elnames = NULL, fixed;
 
     }/*THEN*/
 
-    /* rescan the checklist. */
-    for (j = 0; j < n; j++)
-      if (checklist[UPTRI(i + 1, j + 1, n)] == 2)
-        if (i != j)
-          counter++;
+    /* fix the neighbourhoods with an AND or an OR filter.
+     * AND means that both neighbours have to see each other
+     * to be neighbours, OR means that one neighbour at least
+     * as to see the other one for both to be neighbours. */
+    switch(*nbrfilter) {
 
-    /* allocate and fill the "nbr" element. */
-    PROTECT(temp2 = allocVector(STRSXP, counter));
+      case AND_FILTER:
 
-    for (j = 0; j < n; j++)
-      if (checklist[UPTRI(i + 1, j + 1, n)] == 2)
-        if (i != j)
-          SET_STRING_ELT(temp2, --counter, STRING_ELT(nodes, j));
+        /* rescan the checklist. */
+        for (j = 0; j < n; j++)
+          if (checklist[UPTRI(i + 1, j + 1, n)] == 2)
+            if (i != j)
+              counter++;
+
+        /* allocate and fill the "nbr" element. */
+        PROTECT(temp2 = allocVector(STRSXP, counter));
+
+        for (j = 0; j < n; j++)
+          if (checklist[UPTRI(i + 1, j + 1, n)] == 2)
+            if (i != j)
+              SET_STRING_ELT(temp2, --counter, STRING_ELT(nodes, j));
+
+        break;
+
+      case OR_FILTER:
+
+        /* rescan the checklist. */
+        for (j = 0; j < n; j++)
+          if (checklist[UPTRI(i + 1, j + 1, n)] >= 1)
+            if (i != j)
+              counter++;
+
+        /* allocate and fill the "nbr" element. */
+        PROTECT(temp2 = allocVector(STRSXP, counter));
+
+        for (j = 0; j < n; j++)
+          if (checklist[UPTRI(i + 1, j + 1, n)] >= 1)
+            if (i != j)
+              SET_STRING_ELT(temp2, --counter, STRING_ELT(nodes, j));
+
+        break;
+    }
 
     if (*checkmb) {
 

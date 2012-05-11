@@ -63,6 +63,10 @@ second.principle = function(x, cluster = NULL, mb, whitelist, blacklist,
     test = test, args = list(alpha = alpha),
     ntests = get(".test.counter", envir = .GlobalEnv))
 
+  npermuts = get(".test.counter.permut", envir = .GlobalEnv)
+  if (!is.null(npermuts) & npermuts > 0)
+    learning$npermuts = npermuts
+
   # include also the number of permutations/bootstrap samples
   # if it makes sense.
   if (!is.null(B))
@@ -77,7 +81,7 @@ second.principle = function(x, cluster = NULL, mb, whitelist, blacklist,
 neighbour = function(x, mb, data, alpha, B = NULL, whitelist, blacklist,
   backtracking = NULL, test, debug = FALSE) {
 
-  # save a prisitine copy of the markov blanket.
+  # save a pristine copy of the markov blanket.
   nbrhood = mb[[x]]
 
   # if the markov blanket is empty there's nothing to do.
@@ -161,15 +165,12 @@ neighbour = function(x, mb, data, alpha, B = NULL, whitelist, blacklist,
 
         for (s in 1:nrow(dsep.subsets)) {
 
-          if (debug)
-            cat("    > trying conditioning subset '", dsep.subsets[s,], "'.\n")
-
           a = conditional.test(x, y, dsep.subsets[s,], data = data,
-                test = test, B = B, alpha = alpha)
+                test = test, B = B, alpha = alpha, debug = debug)
           if (a > alpha) {
 
             if (debug)
-              cat("    > node", y, "is not a neighbour of", x, ". ( p-value:", a, ")\n")
+              cat("    > node", y, "is not a neighbour of", x, ".\n")
 
             # update the neighbourhood.
             assign("nbrhood", nbrhood[nbrhood != y], envir = sys.frame(-3) )
@@ -179,7 +180,7 @@ neighbour = function(x, mb, data, alpha, B = NULL, whitelist, blacklist,
           }#THEN
           else if (debug) {
 
-              cat("    > node", y, "is still a neighbour of", x, ". ( p-value:", a, ")\n")
+              cat("    > node", y, "is still a neighbour of", x, ".\n")
 
           }#THEN
 
@@ -270,14 +271,13 @@ vstruct.detect = function(nodes, arcs, mb, data, alpha, B = NULL, test,
           for (s in 1:nrow(dsep.subsets)) {
 
             a = conditional.test(y, z, c(dsep.subsets[s,], x), data = data,
-                  test = test, B = B, alpha = alpha)
-            if (debug)
-              cat("    > testing", y, "vs", z, "given", c(dsep.subsets[s,], x), "(", a, ")\n")
+                  test = test, B = B, alpha = alpha, debug = debug)
             max_a = max(a, max_a)
             if (a > alpha) {
 
               if (debug)
-                cat("    >", y, "and", z, "are independent given '", c(dsep.subsets[s,], x), "' (", a, ")\n")
+                cat("    >", y, "and", z, "are independent.\n")
+
               break
 
             }#THEN
@@ -430,10 +430,10 @@ orient.edges = function(arcs, nodes, whitelist, blacklist, pass, cluster,
     # do not check whitelisted directed arcs.
     cycles = cycles[!which.listed(cycles[, 1:2], whitelist),, drop = FALSE]
 
-    if (debug && (nrow(cycles) > 0)) print(cycles)
-
     # if there are no more arcs to check, break.
     if (nrow(cycles) == 0) break
+
+    if (debug) print(cycles)
 
     # if an arc belongs to a completely directed cycle but do it reverse does
     # not, drop it from the cycles data frame (this makes the second pass compliant
@@ -582,13 +582,19 @@ cycle.counter = function(arcs, nodes, cluster, debug = FALSE) {
 }#CYCLE.COUNTER
 
 # emergency measures for markov blanket and neighbourhood recovery.
-bn.recovery = function(bn, nodes, strict, mb = FALSE, debug = FALSE) {
+bn.recovery = function(bn, nodes, strict, mb = FALSE, debug = FALSE, filter = "AND") {
+
+  filter.or = as.integer(0)
+  filter.and = as.integer(1)
+
+  filter = ifelse(filter == "AND", filter.and, filter.or)
 
   .Call("bn_recovery",
         bn = bn,
         strict = strict,
         mb = mb,
         debug = debug,
+        filter = filter,
         PACKAGE = "bnlearn")
 
 }#BN.RECOVERY

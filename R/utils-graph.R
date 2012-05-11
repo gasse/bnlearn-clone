@@ -38,7 +38,7 @@ mb2arcs = function(mb, nodes) {
   result = do.call(rbind, lapply(nodes[!empty.mb],
                function(x) { cbind(from = x, to = mb[[x]][['nbr']]) }))
 
-  # return an empty matrix all markov blankets are empty.
+  # return an empty matrix if all markov blankets are empty.
   if (is.null(result))
     matrix(character(0), ncol = 2, dimnames = list(c(), c("from", "to")))
   else

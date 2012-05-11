@@ -181,6 +181,51 @@ pdag2dag = function(x, ordering) {
 
 }#PDAG2DAG
 
+# return a partial orientation of an undirected graph (skeleton)).
+skeleton2pdag = function(bn, data, strict = FALSE, debug = FALSE) {
+
+  assign(".test.counter", 0, envir = .GlobalEnv)
+  assign(".test.counter.permut", 0, envir = .GlobalEnv)
+
+  # check bn's class.
+  check.bn(bn)
+  # check the data are there.
+  check.data(data)
+  # check the network against the data.
+  check.bn.vs.data(bn, data)
+  # check the logical flags (debug, strict).
+  check.logical(debug)
+  check.logical(strict)
+  # check if the network is undirected.
+  check.bn.undirected(bn)
+
+  # recover some arc directions.
+  res = second.principle(x = data, mb = bn$nodes,
+        whitelist = bn$learning$whitelist,
+        blacklist = bn$learning$blacklist, test = bn$learning$test,
+        alpha = bn$learning$args$alpha, B = bn$learning$args$B,
+        strict = strict, debug = debug)
+  
+  # restore the original learning parameters.
+  res$learning$algo = bn$learning$algo
+  res$learning$optimized = bn$learning$optimized
+  
+  # update counters.
+  if (length(bn$learning$ntests) > 0)
+    if (length(res$learning$ntests) > 0)
+      res$learning$ntests = res$learning$ntests + bn$learning$ntests
+    else
+      res$learning$ntests = bn$learning$ntests
+  if (length(bn$learning$nscores) > 0)
+    if (length(res$learning$nscores) > 0)
+      res$learning$nscores = res$learning$nscores + bn$learning$nscores
+    else
+      res$learning$ntests = bn$learning$nscores
+
+  invisible(structure(res, class = "bn"))
+
+}#SKELETON2PDAG
+
 # test the equality of two network structures.
 all.equal.bn = function(target, current, ...) {
 

@@ -4,13 +4,16 @@ export(
   "inter.iamb",
   "fast.iamb",
   "mmpc",
+  "hpc",
   "chow.liu",
   "aracne",
   "hc",
   "tabu",
   "rsmax2",
   "mmhc",
+  "h2pc",
   "learn.mb",
+  "learn.pc",
   "naive.bayes",
   "compare",
   "hamming",
@@ -62,6 +65,7 @@ export(
   "subgraph",
   "skeleton",
   "pdag2dag",
+  "skeleton2pdag",
   "ordering2blacklist",
   "tiers2blacklist",
   "empty.graph",
@@ -96,6 +100,7 @@ export(
 
 S3method(all.equal, bn)
 S3method(print, bn)
+S3method(print, pc)
 S3method(plot, bn)
 S3method(AIC, bn)
 S3method(AIC, bn.fit)

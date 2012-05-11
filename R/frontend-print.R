@@ -80,7 +80,7 @@ print.bn = function(x, ...) {
     if ("alpha" %in% params)
       wcat("  alpha threshold:                      ", format(x$learning$args$alpha))
     if ("B" %in% params)
-      wcat("  permutations:                         ", format(x$learning$args$B))
+      wcat("  permutations/bootstrap samples:       ", format(x$learning$args$B))
     if ("iss" %in% params)
       wcat("  imaginary sample size:                ", format(x$learning$args$iss))
     if ("phi" %in% params)
@@ -90,7 +90,14 @@ print.bn = function(x, ...) {
     if ("estimator" %in% params && (x$learning$algo %in% c(mim.based.algorithms, classifiers)))
       wcat("  mutual information estimator:         ", format(mi.estimator.labels[x$learning$args$estimator]))
 
-    wcat("  tests used in the learning procedure: ", x$learning$ntests)
+    if ("nscores" %in% names(x$learning))
+      wcat("  scores used in the search procedure:  ", x$learning$nscores)
+
+    if ("ntests" %in% names(x$learning))
+      wcat("  tests used in the learning procedure: ", x$learning$ntests)
+
+    if ("npermuts" %in% names(x$learning))
+      wcat("  permutations used within tests:       ", x$learning$npermuts)
 
     if (!is.null(x$learning$optimized))
       wcat("  optimized:                            ", x$learning$optimized)
@@ -228,3 +235,84 @@ print.bn.kcv = function(x, ...) {
   invisible(x)
 
 }#PRINT.BN.KCV
+
+# print method for class bn.
+print.pc = function(x, ...) {
+
+  params = names(x$learning$args)
+
+  # warn about unused arguments.
+  check.unused.args(list(...), character(0))
+
+  if (x$learning$algo %in% constraint.based.algorithms)
+    cat("\n  Parents and Children learned via Constraint-based methods\n\n")
+  else if (x$learning$algo %in% score.based.algorithms)
+    cat("\n  Parents and Children learned via Score-based methods\n\n")
+  else if (x$learning$algo %in% hybrid.algorithms)
+    cat("\n  Parents and Children learned via Hybrid methods\n\n")
+  else if (x$learning$algo %in% mim.based.algorithms)
+    cat("\n  Parents and Children learned via Pairwise Mutual Information methods\n\n")
+  else
+    cat("\n  Parents and Children learned via [unknown] methods\n\n")
+
+  # print the model string if possible, a short description otherwise.
+  cat("  target node:", x$node, "\n")
+  cat("  pc set:", x$pc, "\n")
+  cat("  cardinality:", length(x$pc), "\n")
+
+  cat("\n")
+
+  wcat("  learning algorithm:                   ", method.labels[x$learning$algo])
+
+  if (x$learning$algo %in% constraint.based.algorithms)
+    wcat("  conditional independence test:        ", test.labels[x$learning$test])
+  else if (x$learning$algo %in% score.based.algorithms)
+    wcat("  score:                                ", score.labels[x$learning$test])
+  else if (x$learning$algo %in% hybrid.algorithms) {
+
+    if (x$learning$restrict %in% constraint.based.algorithms) {
+
+      wcat("  constraint-based method:              ", method.labels[x$learning$restrict])
+      wcat("  conditional independence test:        ", test.labels[x$learning$rstest])
+
+    }#THEN
+    else if (x$learning$restrict %in% mim.based.algorithms) {
+
+      wcat("  pairwise mutual information method:   ", method.labels[x$learning$restrict])
+      wcat("  mutual information estimator:         ", format(mi.estimator.labels[x$learning$args$estimator]))
+
+    }#THEN
+
+    wcat("  score-based method:                   ", method.labels[x$learning$maximize])
+    wcat("  score:                                ", score.labels[x$learning$maxscore])
+
+  }#THEN
+
+  if ("alpha" %in% params)
+    wcat("  alpha threshold:                      ", format(x$learning$args$alpha))
+  if ("B" %in% params)
+    wcat("  permutations/bootstrap samples:       ", format(x$learning$args$B))
+  if ("iss" %in% params)
+    wcat("  imaginary sample size:                ", format(x$learning$args$iss))
+  if ("phi" %in% params)
+    wcat("  phi matrix structure:                 ", x$learning$args$phi)
+  if ("k" %in% params)
+    wcat("  penalization coefficient:             ", format(x$learning$args$k))
+  if ("estimator" %in% params && (x$learning$algo %in% c(mim.based.algorithms, classifiers)))
+    wcat("  mutual information estimator:         ", format(mi.estimator.labels[x$learning$args$estimator]))
+
+  if ("nscores" %in% names(x$learning))
+    wcat("  scores used in the search procedure:  ", x$learning$nscores)
+  if ("ntests" %in% names(x$learning))
+    wcat("  tests used in the learning procedure: ", x$learning$ntests)
+  if ("npermuts" %in% names(x$learning))
+    wcat("  permutations used within tests:       ", x$learning$npermuts)
+
+  if (!is.null(x$learning$optimized))
+    wcat("  optimized:                            ", x$learning$optimized)
+
+  cat("\n")
+
+  invisible(x)
+
+}#PRINT.PC

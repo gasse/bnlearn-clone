@@ -2,9 +2,10 @@
 # constraint-based learning algorithms.
 bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     test = "mi", alpha = 0.05, B = NULL, method = "gs", debug = FALSE,
-    optimized = TRUE, strict = TRUE, undirected = FALSE) {
+    optimized = TRUE, strict = TRUE, undirected = FALSE, ...) {
 
   assign(".test.counter", 0, envir = .GlobalEnv)
+  assign(".test.counter.permut", 0, envir = .GlobalEnv)
 
   res = NULL
   cluster.aware = FALSE
@@ -25,6 +26,9 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
   # check B (the number of bootstrap/permutation samples).
   B = check.B(B, test)
 
+  extra.args = list(...)
+  check.unused.args(extra.args, method.extra.args[[method]])
+
   # check the cluster.
   if (!is.null(cluster)) {
 
@@ -34,6 +38,7 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     cluster.aware = TRUE
     # set the test counter in all the cluster nodes.
     clusterEvalQ(cluster, assign(".test.counter", 0, envir = .GlobalEnv))
+    clusterEvalQ(cluster, assign(".test.counter.permut", 0, envir = .GlobalEnv))
     # disable debugging, the slaves do not cat() here.
     if (debug) {
 
@@ -171,6 +176,46 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     }#ELSE
 
   }#THEN
+  else if (method == "hpc") {
+
+    nbr.join = check.nbr.join(nbr.join = extra.args$nbr.join, default = "OR")
+
+    if (cluster.aware) {
+
+      nodes = names(x)
+      mb = parLapply(cluster, as.list(nodes), hybrid.pc, data = x, alpha = alpha,
+            B = B, whitelist = whitelist, blacklist = blacklist,
+            test = test, debug = debug)
+      names(mb) = nodes
+
+    }#THEN
+    else if (optimized) {
+
+      nodes = names(x)
+      mb = list()
+      for(node in nodes) {
+        backtracking = unlist(sapply(mb, function(x){ node %in% x$nbr  }))
+        mb[[node]] = hybrid.pc(node, data = x, alpha = alpha,
+              B = B, whitelist = whitelist, blacklist = blacklist,
+              backtracking = backtracking, test = test, debug = debug)
+      }#FOR
+
+    }#THEN
+    else {
+
+      nodes = names(x)
+      mb = lapply(as.list(nodes), hybrid.pc, data = x, alpha = alpha,
+            B = B, whitelist = whitelist, blacklist = blacklist,
+            test = test, debug = debug)
+      names(mb) = nodes
+
+    }#ELSE
+
+    # check neighbourhood sets for consistency.
+    mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
+          filter = nbr.join)
+
+  }#THEN
 
   if (undirected) {
 
@@ -179,6 +224,9 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     learning = list(whitelist = whitelist, blacklist = blacklist,
       test = test, args = list(alpha = alpha), optimized = optimized,
       ntests = get(".test.counter", envir = .GlobalEnv))
+
+    if (test %in% resampling.tests)
+      learning$npermuts = get(".test.counter.permut", envir = .GlobalEnv)
 
     # include also the number of permutations/bootstrap samples
     # if it makes sense.
@@ -199,9 +247,14 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
   }#ELSE
 
   # add tests performed by the slaves to the test counter.
-  if (cluster.aware)
+  if (cluster.aware) {
     res$learning$ntests = res$learning$ntests +
       sum(unlist(clusterEvalQ(cluster, get(".test.counter", envir = .GlobalEnv))))
+    if (test %in% resampling.tests)
+      res$learning$npermuts = res$learning$npermuts +
+        sum(unlist(clusterEvalQ(cluster, get(".test.counter.permuts", envir = .GlobalEnv))))
+  }
+  
   # save the learning method used.
   res$learning$algo = method
   # save the 'optimized' flag.
@@ -294,8 +347,8 @@ greedy.search = function(x, start = NULL, whitelist = NULL, blacklist = NULL,
   extra.args = check.score.args(score = score, network = start,
                  data = x, extra.args = extra.args)
 
-  # create the test counter in .GlobalEnv.
-  assign(".test.counter", 0, envir = .GlobalEnv)
+  # create the score counter in .GlobalEnv.
+  assign(".score.counter", 0, envir = .GlobalEnv)
 
   # call the right backend.
   if (heuristic == "hc") {
@@ -317,7 +370,7 @@ greedy.search = function(x, start = NULL, whitelist = NULL, blacklist = NULL,
 
   # set the metadata of the network in one stroke.
   res$learning = list(whitelist = whitelist, blacklist = blacklist,
-    test = score, ntests = get(".test.counter", envir = .GlobalEnv),
+    test = score, nscores = get(".score.counter", envir = .GlobalEnv),
     algo = heuristic, args = extra.args, optimized = optimized)
 
   invisible(res)
@@ -379,10 +432,14 @@ hybrid.search = function(x, whitelist = NULL, blacklist = NULL,
   # set the metadata of the network in one stroke.
   res$learning = list(whitelist = rst$learning$whitelist,
     blacklist = rst$learning$blacklist, test = res$learning$test,
-    ntests = res$learning$ntests + rst$learning$ntests, algo = method,
-    args = c(res$learning$args, rst$learning$args), optimized = optimized,
+    ntests = rst$learning$ntests, nscores = res$learning$nscores,
+    algo = method,
+	args = c(res$learning$args, rst$learning$args), optimized = optimized,
     restrict = restrict, rstest = rst$learning$test, maximize = maximize,
     maxscore = res$learning$test)
+
+    if (rst$learning$test %in% resampling.tests)
+      res$learning$npermuts = rst$learning$npermuts
 
   invisible(res)
 
@@ -446,6 +503,7 @@ mb.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
     test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
 
   assign(".test.counter", 0, envir = .GlobalEnv)
+  assign(".test.counter.permut", 0, envir = .GlobalEnv)
 
   # check the data are there.
   check.data(x)
@@ -501,6 +559,176 @@ mb.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
   return(mb)
 
 }#MB.BACKEND
+
+# learn the parents and children of a single node.
+pc.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
+    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
+
+  assign(".test.counter", 0, envir = .GlobalEnv)
+  assign(".test.counter.permut", 0, envir = .GlobalEnv)
+
+  # check the data are there.
+  check.data(x)
+  # cache the node labels.
+  nodes = names(x)
+  # a valid node is needed.
+  check.nodes(nodes = node, graph = nodes, max.nodes = 1)
+  # check the algorithm.
+  check.learning.algorithm(method, class = "local.search")
+  # check test labels.
+  test = check.test(test, x)
+  # check the logical flags (debug, optimized).
+  check.logical(debug)
+  check.logical(optimized)
+  # check alpha.
+  alpha = check.alpha(alpha)
+  # check B (the number of bootstrap/permutation samples).
+  B = check.B(B, test)
+  # sanitize whitelist and blacklist, if any.
+  whitelist = build.whitelist(whitelist, nodes)
+  blacklist = build.blacklist(blacklist, whitelist, nodes)
+
+  # call the right backend.
+  if (method == "mmpc") {
+
+    pc = maxmin.pc.forward.phase(node, data = x, nodes = nodes,
+          alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+          test = test, optimized = FALSE, debug = debug)
+
+    for (neighbour in pc) {
+      neighbour.pc = maxmin.pc.forward.phase(neighbour, data = x, nodes = nodes,
+            alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+            test = test, optimized = FALSE, debug = debug)
+      if (!node %in% neighbour.pc)
+        pc = setdiff(pc, neighbour)
+    }#FOR
+
+  }#THEN
+  else if (method == "hpc") {
+
+    pc = hybrid.pc(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "hpc2") {
+
+    pc = hybrid.pc.2(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "gpc0") {
+
+    pc = g.pc.0(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "gpc1") {
+
+    pc = g.pc.1(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "rpc0") {
+
+    pc = r.pc.0(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "rpc1") {
+
+    pc = r.pc.1(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "2npc") {
+
+    pc = twoneighbourhood.pc(t = node, data = x, alpha = alpha, B = B,
+          whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "pcs-rsps") {
+
+    pc = get.pcs.rsps(t = node, data = x, nodes = nodes, alpha = alpha,
+          B = B, whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+
+  }#THEN
+  else if (method == "iapc") {
+
+    mb = ia.markov.blanket(x = node, data = x, nodes = nodes,
+           alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+           backtracking = NULL, test = test, debug = debug)
+
+    pc = hybrid.pc.filter(t = node, pcs = mb, rsps = NULL, data = x,
+          alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+
+  }#THEN
+  else if (method == "fast.iapc") {
+
+    mb = fast.ia.markov.blanket(x = node, data = x, nodes = nodes,
+           alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+           backtracking = NULL, test = test, debug = debug)
+
+    pc = hybrid.pc.filter(t = node, pcs = mb, rsps = NULL, data = x,
+          alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+
+  }#THEN
+  else if (method == "inter.iapc") {
+
+    mb = inter.ia.markov.blanket(x = node, data = x, nodes = nodes,
+           alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+           backtracking = NULL, test = test, debug = debug)
+
+    pc = hybrid.pc.filter(t = node, pcs = mb, rsps = NULL, data = x,
+          alpha = alpha, B = B, whitelist = whitelist, blacklist = blacklist,
+          backtracking = NULL, test = test, debug = debug)
+
+  }#THEN
+
+  # save the status of the learning algorithm.
+  learning = list(
+        whitelist = whitelist,
+        blacklist = blacklist,
+        test = test,
+        algo = method,
+        optimized = optimized,
+        args = list(alpha = alpha),
+        ntests = get(".test.counter", envir = .GlobalEnv))
+
+  # include the number of permutations/bootstrap samples if it makes sense.
+  if (!is.null(B))
+    learning$args$B = B
+
+  # include also the actual number of permutations performed if it makes sense.
+  npermuts = get(".test.counter.permut", envir = .GlobalEnv)
+  if (!is.null(npermuts) & npermuts > 0)
+    learning$npermuts = npermuts
+
+  res = list(
+        node = node,
+        learning = learning,
+        pc = pc)
+
+  return(structure(res, class = "pc"))
+
+}#PC.BACKEND
 
 # baeysian network classifiers.
 bayesian.classifier = function(data, method, training, explanatory, whitelist,
@@ -590,4 +818,3 @@ bayesian.classifier = function(data, method, training, explanatory, whitelist,
   invisible(res)
 
 }#BAYESIAN.CLASSIFIER
-

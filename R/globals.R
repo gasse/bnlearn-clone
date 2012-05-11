@@ -1,11 +1,13 @@
 
 # Global variables.
-available.discrete.tests = c("mi", "mi-sh", "x2", "mc-mi", "smc-mi", "mc-x2", "smc-x2")
+available.discrete.tests = c("mi", "mi-sh", "x2", "mc-mi", "smc-mi", "mc-x2", "smc-x2",
+  "pf-mi", "pf-mi-sh", "pf-x2", "mi-h", "pf-mi-h")
 available.continuous.tests = c("cor", "zf", "mi-g", "mi-g-sh", "mc-mi-g",
   "smc-mi-g", "mc-cor", "smc-cor", "mc-zf", "smc-zf")
 available.tests = c(available.discrete.tests, available.continuous.tests)
 
-resampling.tests = c("mc-mi", "smc-mi", "mc-x2", "smc-x2", "mc-mi-g", "smc-mi-g", 
+resampling.semiparam.tests = c("pf-mi", "pf-mi-sh", "pf-x2", "pf-mi-h")
+resampling.tests = c(resampling.semiparam.tests, "mc-mi", "smc-mi", "mc-x2", "smc-x2", "mc-mi-g", "smc-mi-g", 
   "mc-cor", "smc-cor", "mc-zf", "smc-zf")
 asymptotic.tests = c("mi", "mi-g", "x2", "zf")
 
@@ -21,7 +23,8 @@ available.continuous.mi = c("mi-g")
 available.mi = c(available.discrete.mi, available.continuous.mi)
 
 markov.blanket.algorithms = c("gs", "iamb", "fast.iamb", "inter.iamb")
-local.search.algorithms = c("mmpc")
+local.search.algorithms = c("mmpc", "hpc", "hpc2", "gpc0", "gpc1", "gpc2", "rpc0",
+  "rpc1", "2npc", "pcs-rsps", "iapc", "fast.iapc", "inter.iapc")
 constraint.based.algorithms = c(markov.blanket.algorithms, local.search.algorithms)
 score.based.algorithms = c("hc", "tabu")
 hybrid.algorithms = c("rsmax2", "mmhc")
@@ -43,6 +46,17 @@ method.labels = c(
   'hc' = "Hill-Climbing",
   'tabu' = "Tabu Search",
   'mmpc' = "Max-Min Parent Children",
+  'hpc' = "Hybrid Parents and Children",
+  'hpc2' = "Hybrid Parents and Children 2",
+  'gpc0' = "Gasse Parents and Children 0-degree",
+  'gpc1' = "Gasse Parents and Children 1-degree",
+  'rpc0' = "Reverse Parents and Children 0-degree",
+  'rpc1' = "Reverse Parents and Children 1-degree",
+  '2npc' = "Two-Neighbourhood Parents and Children",
+  'pcs-rsps' = "Parents and Children Subset and Remaining Neighbours Subset",
+  'iapc' = "Incremental Association Parents and Children",
+  'fast.iapc' = "Fast Incremental Association Parents and Children",
+  'inter.iapc' = "Interleaved Incremental Association Parents and Children",
   'rsmax2' = "Two-Phase Restricted Maximization",
   'mmhc' = "Max-Min Hill-Climbing",
   'aracne' = "ARACNE",
@@ -53,7 +67,8 @@ method.labels = c(
 
 method.extra.args = list(
   'hc' = c("max.iter", "restart", "perturb"),
-  'tabu' = c("max.iter", "tabu", "max.tabu")
+  'tabu' = c("max.iter", "tabu", "max.tabu"),
+  'hpc' = c("nbr.join")
 )
 
 test.labels = c(
@@ -61,6 +76,10 @@ test.labels = c(
   'mi-sh' = "Mutual Information (discrete, shrinkage)",
   'mc-mi' = "Mutual Information (discrete, Monte Carlo)",
   'smc-mi' = "Mutual Information (discrete, Sequential Monte Carlo)",
+  'mi-h' = "Mutual Information (discrete) with heuristics",
+  "pf-mi-h" = "Mutual Information (discrete, permutation-fitted df) with heuristic",
+  "pf-mi" = "Mutual Information (discrete, permutation-fitted df)",
+  "pf-mi-sh" = "Mutual Information (discrete, shrinkage, permutation-fitted df)",
   'mi-g' = "Mutual Information (Gaussian)",
   'mi-g-sh' = "Mutual Information (Gaussian, shrinkage)",
   'mc-mi-g' = "Mutual Information (Gaussian, Monte Carlo)",
@@ -68,6 +87,7 @@ test.labels = c(
   'x2'= "Pearson's X^2",
   'mc-x2'= "Pearson's X^2 (Monte Carlo)",
   'smc-x2'= "Pearson's X^2 (Sequential Monte Carlo)",
+  "pf-x2" = "Pearson's X^2 (permutation-fitted df)",
   'cor' = "Pearson's Linear Correlation",
   'mc-cor' = "Pearson's Linear Correlation (Monte Carlo)",
   'smc-cor' = "Pearson's Linear Correlation (Sequential Monte Carlo)",

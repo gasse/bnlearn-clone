@@ -108,12 +108,6 @@ check.data = function(x, allow.mixed = FALSE) {
       stop("variables must be either all real numbers or all factors.")
 
   }
-  # check the number of levels of discrete variables, to guarantee that
-  # the degrees of freedom of the tests are positive.
-  if (is.data.discrete(x))
-    for (col in names(x))
-      if (nlevels(x[, col]) < 2)
-        stop("all factors must have at leat two levels.")
 
 }#CHECK.DATA
 
@@ -1208,6 +1202,11 @@ check.B = function(B, criterion) {
       B = as.integer(B)
 
     }#THEN
+    else if (criterion %in% resampling.semiparam.tests){
+
+      B = 100L
+
+    }#THEN
     else {
 
       B = 5000L
@@ -1644,6 +1643,8 @@ check.learning.algorithm = function(algorithm, class = "all", bn) {
     ok = c(ok, constraint.based.algorithms)
   if ("markov.blanket" %in% class)
     ok = c(ok, markov.blanket.algorithms)
+  if ("local.search" %in% class)
+    ok = c(ok, local.search.algorithms)
   if ("score" %in% class)
     ok = c(ok, score.based.algorithms)
   if ("mim" %in% class)
@@ -1833,3 +1834,23 @@ check.weights = function(weights, len) {
 
 }#CHECK.WEIGHTS
 
+# check an undirected bayesian network
+check.bn.undirected = function(bn) {
+
+  if (!all(which.undirected(bn$arcs, names(bn$nodes))))
+    stop("the network contains directed edges.")
+
+}#CHECK.BN.UNDIRECTED
+
+# Check the type of neigbourhood join : OR or AND.
+check.nbr.join = function(nbr.join, default = "AND") {
+
+  if (missing(nbr.join) || is.null(nbr.join))
+    nbr.join = default
+
+  if (!nbr.join %in% c("OR", "AND"))
+    stop("the neighbourhood join type must be 'OR' or 'AND'.")
+
+  return(nbr.join)
+
+}#CHECK.NBR.JOIN
