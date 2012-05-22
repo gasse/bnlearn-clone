@@ -413,8 +413,7 @@ check.test = function(test, data) {
     check.string(test)
     # check the score/test label.
     if (!(test %in% available.tests))
-      stop(paste(c("valid tests are:\n",
-             sprintf("    %-10s %s\n", names(test.labels), test.labels)), sep = ""))
+      stop(paste(c("valid tests are:", names(test.labels)), ".", sep = "", collapse = " "))
     # check if it's the right test for the data (discrete, continuous).
     if (!is.data.discrete(data) && (test %in% available.discrete.tests))
       stop(paste("test '", test, "' may be used with discrete data only.", sep = ""))
