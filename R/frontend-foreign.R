@@ -59,7 +59,7 @@ write.dsc = function(file, fitted) {
 
 }#WRITE.DSC
 
-# read a DSC file into a bn.fit object.
+# read a BIF file into a bn.fit object.
 read.net = function(file, debug = FALSE) {
 
   # load the BIF file into memory.
