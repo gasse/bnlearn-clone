@@ -124,7 +124,7 @@ logic.sampling = function(fitted, event, evidence, n, batch, debug = FALSE) {
     if (!is.logical(r))
       stop("event must evaluate to a logical vector.")
     # double check that it is of the right length.
-    if (length(r) != n)
+    if (length(r) != 1 && length(r) != n)
       stop("logical vector for event is of length ", length(r),
         " instead of ", n, ".")
     # filter out the samples not matching the event we are looking for.
@@ -197,7 +197,7 @@ logic.distribution = function(fitted, nodes, evidence, n, batch, debug = FALSE) 
     if (!is.logical(r))
       stop("evidence must evaluate to a logical vector.")
     # double check that it is of the right length.
-    if (length(r) != n)
+    if (length(r) != 1 && length(r) != n)
       stop("logical vector for evidence is of length ", length(r),
         " instead of ", n, ".")
     # filter out the samples not matching the evidence we assume.
