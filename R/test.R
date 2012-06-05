@@ -17,15 +17,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
   df = NULL
   perm.counter = NULL
 
-  # If one of the two test variables is discrete and monomial, we claim
-  # independance.
-  if (is(data[, x], "factor") && nlevels(data[, x]) < 2
-    || is(data[, y], "factor") && nlevels(data[, y]) < 2) {
-
-    p.value = 1
-
-  }#THEN
-  else if (length(sx) == 0) {
+  if (length(sx) == 0) {
 
     # all unconditional tests need this subsetting, do it here.
     datax = minimal.data.frame.column(data, x)

@@ -108,6 +108,12 @@ check.data = function(x, allow.mixed = FALSE) {
       stop("variables must be either all real numbers or all factors.")
 
   }
+  # check the number of levels of discrete variables, to guarantee that
+  # the degrees of freedom of the tests are positive.
+  if (is.data.discrete(x))
+    for (col in names(x))
+      if (nlevels(x[, col]) < 2)
+        stop("all factors must have at leat two levels.")
 
 }#CHECK.DATA
 
