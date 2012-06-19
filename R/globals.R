@@ -50,6 +50,7 @@ method.labels = c(
   'hpc2' = "Hybrid Parents and Children 2",
   'gpc0' = "Gasse Parents and Children 0-degree",
   'gpc1' = "Gasse Parents and Children 1-degree",
+  'gpc2' = "Gasse Parents and Children 2",
   'rpc0' = "Reverse Parents and Children 0-degree",
   'rpc1' = "Reverse Parents and Children 1-degree",
   '2npc' = "Two-Neighbourhood Parents and Children",
@@ -68,7 +69,8 @@ method.labels = c(
 method.extra.args = list(
   'hc' = c("max.iter", "restart", "perturb"),
   'tabu' = c("max.iter", "tabu", "max.tabu"),
-  'hpc' = c("nbr.join")
+  'hpc' = c("nbr.join"),
+  'h2pc' = c("nbr.join")
 )
 
 test.labels = c(
