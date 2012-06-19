@@ -189,7 +189,14 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
         heur.test = mi_df.test(datax, datay, ndata, gsquare = TRUE)
         statistic = heur.test[1]
         df = heur.test[2]
-        p.value = pchisq(statistic, df, lower.tail = FALSE)
+        
+        # if the adjustement heuristic returns df=0, then one of the X
+        # or Y variables is one-dimension, which means there cannot be
+        # any correlation between X and Y
+        if (df == 0)
+          p.value = 0
+        else
+          p.value = pchisq(statistic, df, lower.tail = FALSE)
 
       }#ELSE
 
@@ -437,7 +444,14 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
         heur.test = cmi_df.test(datax, datay, config, ndata, gsquare = TRUE)
         statistic = heur.test[1]
         df = heur.test[2]
-        p.value = pchisq(statistic, df, lower.tail = FALSE)
+        
+        # if the adjustement heuristic returns df=0, then one of the X
+        # or Y variables is one-dimension, which means there cannot be
+        # any correlation between X and Y
+        if (df == 0)
+          p.value = 0
+        else
+          p.value = pchisq(statistic, df, lower.tail = FALSE)
 
       }#ELSE
 
