@@ -147,7 +147,7 @@ r.pc.de.pcs.0 = function(t, data, nodes, alpha, B, whitelist, blacklist,
   for (x in pcs) {
 
     a = conditional.test(t, x, c(), data = data, test = test, B = B,
-          alpha = alpha)
+          alpha = alpha, debug = debug)
 
     if (a > alpha) { 
 

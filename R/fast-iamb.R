@@ -111,7 +111,7 @@ fast.ia.markov.blanket = function(x, data, nodes, alpha, B, whitelist, blacklist
       cat("  * checking node", y, "for exclusion (shrinking phase).\n")
 
     a = conditional.test(x, y, mb[mb != y], data = data, test = test, B = B,
-          alpha = alpha)
+          alpha = alpha, debug = debug)
 
     if (a > alpha) {
 
