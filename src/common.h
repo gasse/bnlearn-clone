@@ -153,7 +153,7 @@ double c_mig(double *xx, double *yy, int *num);
 #define MI_PART(cell, xmarg, ymarg, zmarg) \
   ((cell) == 0 ? \
     0 : \
-    ((double)(cell)) * log(((double)((cell) * (zmarg))) / ((double)((xmarg) * (ymarg)))))
+    ((double)(cell)) * log((((double)(cell)) * ((double)(zmarg))) / (((double)(xmarg)) * ((double)(ymarg)))))
 
 /* memory allocation functions */
 
