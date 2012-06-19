@@ -150,6 +150,10 @@ SEXP schedule(SEXP bn, SEXP root_nodes, SEXP debug);
 
 double c_mi(int *xx, int *llx, int *yy, int *lly, int *num);
 double c_mig(double *xx, double *yy, int *num);
+#define MI_PART(cell, xmarg, ymarg, zmarg) \
+  ((cell) == 0 ? \
+    0 : \
+    ((double)(cell)) * log(((double)((cell) * (zmarg))) / ((double)((xmarg) * (ymarg)))))
 
 /* memory allocation functions */
 

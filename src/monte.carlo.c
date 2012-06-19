@@ -639,14 +639,8 @@ int i = 0, j = 0;
 double res = 0;
 
   for (i = 0; i < *nrows; i++)
-    for (j = 0; j < *ncols; j++) {
-
-      if (n[CMC(i, j, *nrows)] != 0)
-        res += ((double)n[CMC(i, j, *nrows)]) *
-                 ( log((double)n[CMC(i, j, *nrows)]) + log((double)(*length)) -
-                   log((double)nrowt[i]) - log((double)ncolt[j]) );
-
-    }/*FOR*/
+    for (j = 0; j < *ncols; j++)
+      res += MI_PART(n[CMC(i, j, *nrows)], nrowt[i], ncolt[j], *length);
 
   return res;
 
@@ -661,17 +655,8 @@ double res = 0;
 
   for (k = 0; k < *nl; k++)
     for (j = 0; j < *nc; j++)
-      for (i = 0; i < *nr; i++) {
-
-       if (n[k][CMC(i, j, *nr)] != 0) {
-
-          res += (double)n[k][CMC(i, j, *nr)] *
-                   ( log((double)n[k][CMC(i, j, *nr)]) + log((double)ncond[k]) -
-                     log((double)nrowt[k][i]) - log((double)ncolt[k][j]) );
-
-        }/*THEN*/
-
-      }/*FOR*/
+      for (i = 0; i < *nr; i++)
+        res += MI_PART(n[k][CMC(i, j, *nr)], nrowt[k][i], ncolt[k][j], ncond[k]);
 
   return res;
 

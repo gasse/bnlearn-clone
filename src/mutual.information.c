@@ -31,14 +31,8 @@ double res = 0;
 
   /* compute the mutual information from the joint and marginal frequencies. */
   for (i = 0; i < *llx; i++)
-    for (j = 0; j < *lly; j++) {
-
-      if (n[i][j] != 0)
-        res += ((double)n[i][j]) *
-           ( log((double)n[i][j]) + log((double)(*num)) -
-             log((double)ni[i]) - log((double)nj[j]) );
-
-    }/*FOR*/
+    for (j = 0; j < *lly; j++)
+      res += MI_PART(n[i][j], ni[i], nj[j], *num);
 
   return (res)/(*num);
 
@@ -108,14 +102,8 @@ SEXP result;
 
   /* compute the mutual information from the joint and marginal frequencies. */
   for (i = 0; i < *llx; i++)
-    for (j = 0; j < *lly; j++) {
-
-      if (n[i][j] != 0)
-        res[0] += ((double)n[i][j]) *
-           ( log((double)n[i][j]) + log((double)(*num)) -
-             log((double)ni[i]) - log((double)nj[j]) );
-
-    }/*FOR*/
+    for (j = 0; j < *lly; j++)
+      res[0] += MI_PART(n[i][j], ni[i], nj[j], *num);
 
   res[0] = (res[0])/(*num);
   res[1] = dfx * dfy;
@@ -169,17 +157,8 @@ SEXP result;
      marginal frequencies. */
   for (i = 0; i < *llx; i++)
     for (j = 0; j < *lly; j++)
-      for (k = 0; k < *llz; k++) {
-
-       if (n[i][j][k] != 0) {
-
-          *res += (double)n[i][j][k] *
-            ( log((double)n[i][j][k]) + log((double)nk[k]) -
-              log((double)ni[i][k]) - log((double)nj[j][k]) );
-
-        }/*THEN*/
-
-      }/*FOR*/
+      for (k = 0; k < *llz; k++)
+        *res += MI_PART(n[i][j][k], ni[i][k], nj[j][k], nk[k]);
 
   *res = (*res)/(*num);
 
@@ -247,17 +226,8 @@ SEXP result;
      marginal frequencies. */
   for (i = 0; i < *llx; i++)
     for (j = 0; j < *lly; j++)
-      for (k = 0; k < *llz; k++) {
-
-       if (n[i][j][k] != 0) {
-
-          res[0] += (double)n[i][j][k] *
-            ( log((double)n[i][j][k]) + log((double)nk[k]) -
-              log((double)ni[i][k]) - log((double)nj[j][k]) );
-
-        }/*THEN*/
-
-      }/*FOR*/
+      for (k = 0; k < *llz; k++)
+        res[0] += MI_PART(n[i][j][k], ni[i][k], nj[j][k], nk[k]);
 
   res[0] = (res[0])/(*num);
   res[1] = df;
