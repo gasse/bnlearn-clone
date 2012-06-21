@@ -136,7 +136,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
       perm.counter = perm.mean[3]
       
       if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-        p.value = 0
+        p.value = 1
       else
         p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -151,7 +151,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
       perm.counter = perm.mean[3]
       
       if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-        p.value = 0
+        p.value = 1
       else
         p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -166,7 +166,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
       perm.counter = perm.mean[3]
       
       if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-        p.value = 0
+        p.value = 1
       else
         p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -194,7 +194,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
         # or Y variables is one-dimension, which means there cannot be
         # any correlation between X and Y
         if (df == 0)
-          p.value = 0
+          p.value = 1
         else
           p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -221,7 +221,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
         perm.counter = perm.mean[3]
         
         if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-          p.value = 0
+          p.value = 1
         else
           p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -382,7 +382,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
       perm.counter = perm.mean[3]
       
       if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-        p.value = 0
+        p.value = 1
       else
         p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -400,7 +400,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
       perm.counter = perm.mean[3]
       
       if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-        p.value = 0
+        p.value = 1
       else
         p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -418,7 +418,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
       perm.counter = perm.mean[3]
       
       if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-        p.value = 0
+        p.value = 1
       else
         p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -449,7 +449,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
         # or Y variables is one-dimension, which means there cannot be
         # any correlation between X and Y
         if (df == 0)
-          p.value = 0
+          p.value = 1
         else
           p.value = pchisq(statistic, df, lower.tail = FALSE)
 
@@ -479,7 +479,7 @@ conditional.test = function(x, y, sx, data, test, B, alpha = 1, learning = TRUE,
         perm.counter = perm.mean[3]
         
         if(df <= 0) # TODO : not sure why df < 0 ? This prevents a NaN value to be returned
-          p.value = 0
+          p.value = 1
         else
           p.value = pchisq(statistic, df, lower.tail = FALSE)
 
