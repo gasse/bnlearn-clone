@@ -400,10 +400,10 @@ hybrid.search = function(x, whitelist = NULL, blacklist = NULL,
   # restrict phase
   if (restrict %in% constraint.based.algorithms) {
 
-    rst = bnlearn(x, cluster = NULL, whitelist = whitelist, blacklist = blacklist,
-            test = restrict.args$test, alpha = restrict.args$alpha,
-            B = restrict.args$B, method = restrict, debug = debug,
-            optimized = optimized, strict = restrict.args$strict, undirected = TRUE)
+    rst = do.call(bnlearn, c(list(x = x, cluster = NULL,
+      whitelist = whitelist, blacklist = blacklist, method = restrict,
+      debug = debug, optimized = optimized, undirected = TRUE),
+      restrict.args))
 
   }#THEN
   else if (restrict %in% mim.based.algorithms) {
@@ -433,8 +433,7 @@ hybrid.search = function(x, whitelist = NULL, blacklist = NULL,
   res$learning = list(whitelist = rst$learning$whitelist,
     blacklist = rst$learning$blacklist, test = res$learning$test,
     ntests = rst$learning$ntests, nscores = res$learning$nscores,
-    algo = method,
-	args = c(res$learning$args, rst$learning$args), optimized = optimized,
+    algo = method, args = c(res$learning$args, rst$learning$args), optimized = optimized,
     restrict = restrict, rstest = rst$learning$test, maximize = maximize,
     maxscore = res$learning$test)
 

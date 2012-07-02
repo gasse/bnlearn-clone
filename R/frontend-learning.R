@@ -61,7 +61,7 @@ mmpc = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
 # HPC frontend.
 hpc = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE,
-    strict = FALSE, undirected = FALSE, nbr.join = "OR") {
+    strict = FALSE, undirected = FALSE, nbr.join = "AND") {
 
   bnlearn(x = x, cluster = cluster, whitelist = whitelist,
     blacklist = blacklist, test = test, alpha = alpha, B = B,
@@ -147,7 +147,7 @@ mmhc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
 h2pc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
     score = NULL, alpha = 0.05, B = NULL, ..., tabu = 100,
     max.tabu = 15, optimized = TRUE, strict = FALSE, debug = FALSE,
-    nbr.join = "OR") {
+    nbr.join = "AND") {
 
   restrict.args = list(test = test, alpha = alpha, B = B, strict = strict,
         nbr.join = nbr.join)
