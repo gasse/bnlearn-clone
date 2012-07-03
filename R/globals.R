@@ -9,7 +9,8 @@ available.tests = c(available.discrete.tests, available.continuous.tests)
 resampling.semiparam.tests = c("pf-mi", "pf-mi-sh", "pf-x2", "pf-mi-h")
 resampling.tests = c(resampling.semiparam.tests, "mc-mi", "smc-mi", "mc-x2", "smc-x2", "mc-mi-g", "smc-mi-g", 
   "mc-cor", "smc-cor", "mc-zf", "smc-zf")
-asymptotic.tests = c("mi", "mi-g", "x2", "zf")
+asymptotic.tests = c("mi", "mi-sh", "x2", "mc-mi", "smc-mi", "mc-x2", "smc-x2",
+  "pf-mi", "pf-mi-sh", "pf-x2", "mi-h", "pf-mi-h", "zf")
 
 available.discrete.scores = c("loglik", "aic", "bic", "bde", "bdes", "k2", "mbde")
 available.continuous.scores = c("bge", "loglik-g", "aic-g", "bic-g")
