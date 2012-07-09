@@ -25,7 +25,7 @@ available.mi = c(available.discrete.mi, available.continuous.mi)
 
 markov.blanket.algorithms = c("gs", "iamb", "fast.iamb", "inter.iamb")
 local.search.algorithms = c("mmpc", "hpc", "hpc2", "hpc3", "hpc4", "gpc0",
-  "gpc1", "gpc2", "rpc0", "rpc1", "2npc", "pcs-rsps", "iapc", "fast.iapc",
+  "rpc0", "rpc1", "2npc", "pcs-rsps", "iapc", "fast.iapc",
   "inter.iapc")
 constraint.based.algorithms = c(markov.blanket.algorithms, local.search.algorithms)
 score.based.algorithms = c("hc", "tabu")
@@ -52,9 +52,6 @@ method.labels = c(
   'hpc2' = "Hybrid Parents and Children 2",
   'hpc3' = "Hybrid Parents and Children 3",
   'hpc4' = "Hybrid Parents and Children 4",
-  'gpc0' = "Gasse Parents and Children 0-degree",
-  'gpc1' = "Gasse Parents and Children 1-degree",
-  'gpc2' = "Gasse Parents and Children 2",
   'rpc0' = "Reverse Parents and Children 0-degree",
   'rpc1' = "Reverse Parents and Children 1-degree",
   '2npc' = "Two-Neighbourhood Parents and Children",
