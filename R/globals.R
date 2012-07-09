@@ -24,11 +24,12 @@ available.continuous.mi = c("mi-g")
 available.mi = c(available.discrete.mi, available.continuous.mi)
 
 markov.blanket.algorithms = c("gs", "iamb", "fast.iamb", "inter.iamb")
-local.search.algorithms = c("mmpc", "hpc", "hpc2", "gpc0", "gpc1", "gpc2", "rpc0",
-  "rpc1", "2npc", "pcs-rsps", "iapc", "fast.iapc", "inter.iapc")
+local.search.algorithms = c("mmpc", "hpc", "hpc2", "hpc3", "hpc4", "gpc0",
+  "gpc1", "gpc2", "rpc0", "rpc1", "2npc", "pcs-rsps", "iapc", "fast.iapc",
+  "inter.iapc")
 constraint.based.algorithms = c(markov.blanket.algorithms, local.search.algorithms)
 score.based.algorithms = c("hc", "tabu")
-hybrid.algorithms = c("rsmax2", "mmhc")
+hybrid.algorithms = c("rsmax2", "mmhc", "h2pc")
 mim.based.algorithms = c("chow.liu", "aracne")
 classifiers = c("naive", "tan")
 available.learning.algorithms = c(constraint.based.algorithms, score.based.algorithms,
@@ -49,6 +50,8 @@ method.labels = c(
   'mmpc' = "Max-Min Parent Children",
   'hpc' = "Hybrid Parents and Children",
   'hpc2' = "Hybrid Parents and Children 2",
+  'hpc3' = "Hybrid Parents and Children 3",
+  'hpc4' = "Hybrid Parents and Children 4",
   'gpc0' = "Gasse Parents and Children 0-degree",
   'gpc1' = "Gasse Parents and Children 1-degree",
   'gpc2' = "Gasse Parents and Children 2",
@@ -71,6 +74,8 @@ method.extra.args = list(
   'hc' = c("max.iter", "restart", "perturb"),
   'tabu' = c("max.iter", "tabu", "max.tabu"),
   'hpc' = c("nbr.join"),
+  'hpc2' = c("nbr.join"),
+  'hpc4' = c("nbr.join"),
   'h2pc' = c("nbr.join")
 )
 

@@ -12,13 +12,17 @@ hybrid.pc = function(t, data, whitelist, blacklist, test, alpha,
         backtracking, test, debug)
   pcs = tmp$pcs
   dsep = tmp$dsep
+  
+  #optimisation : 0 or 1 node in PCS --> PC == PCS
+  if(length(pcs) < 2)
+    return(list(nbr = pcs, mb = NULL))
 
   # 2. [RSPS] Search remaining spouses superset, those not already in PCS
   rsps = hybrid.pc.de.rsps(t, data, nodes, pcs, dsep, alpha, B, test, debug)
   
-  # Special case : 0 or 1 nodes in PC
-  if(length(c(pcs, rsps)) < 2)
-      return(list(nbr = c(pcs, rsps), mb = c(pcs, rsps)))
+  #optimisation : 2 nodes in PC and no SP --> PC == PCS
+  if(length(c(pcs, rsps)) < 3)
+      return(list(nbr = pcs, mb = pcs))
 
   # 3. [IAMB] Get the Markov boundary from nodes within PCS and RSPS
   mb = inter.ia.markov.blanket(t, data, nodes = c(t, pcs, rsps), alpha, B,
@@ -72,13 +76,17 @@ hybrid.pc.2 = function(t, data, whitelist, blacklist, test, alpha,
         backtracking, test, debug)
   pcs = tmp$pcs
   dsep = tmp$dsep
+  
+  #optimisation : 0 or 1 node in PCS --> PC == PCS
+  if(length(pcs) < 2)
+    return(list(nbr = pcs, mb = NULL))
 
   # 2. [RSPS] Search remaining spouses superset, those not already in PCS
   rsps = hybrid.pc.de.rsps(t, data, nodes, pcs, dsep, alpha, B, test, debug)
   
-  # Special case : 0 or 1 nodes in PC
-  if(length(c(pcs, rsps)) < 2)
-      return(list(nbr = c(pcs, rsps), mb = c(pcs, rsps)))
+  #optimisation : 2 nodes in PC and no SP --> PC == PCS
+  if(length(c(pcs, rsps)) < 3)
+    return(list(nbr = pcs, mb = pcs))
 
   # 3. [IAMB] Get the Markov boundary from nodes within PCS and RSPS
   mb = inter.ia.markov.blanket(t, data, nodes = c(t, pcs, rsps), alpha, B,
@@ -128,14 +136,15 @@ hybrid.pc.2 = function(t, data, whitelist, blacklist, test, alpha,
 hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
   backtracking = NULL, test, debug = FALSE) {
 
-  known.good = c()
+  pcs = vector()
+  pvals = vector()
+  dsep = list()
+
   whitelisted = nodes[vapply(nodes,
           function(x) { is.whitelisted(whitelist, c(t, x), either = TRUE) }, logical(1))]
   blacklisted = nodes[vapply(nodes,
           function(x) { is.blacklisted(blacklist, c(t, x), both = TRUE) }, logical(1))]
-  pcs = vector()
-  pvalues = vector()
-  dsep = list()
+  known.good = c()
 
   if (debug) {
     cat("----------------------------------------------------------------\n")
@@ -160,8 +169,9 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
           nodes[!(nodes %in% c(t, known.good))], "'.\n")
   }#THEN
 
-  # heuristic 1 : sort by name to be deterministic
   nodes.to.check = nodes[!(nodes %in% c(t, known.good, whitelisted, blacklisted))]
+
+  # heuristic 1 : sort by name to be deterministic
   nodes.to.check = nodes.to.check[order(nodes.to.check)]
 
   # Phase (I): remove X if Ind(T,X) (0-degree d-separated nodes)
@@ -177,51 +187,66 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
 
       # keep pcs with p-values in order to order nodes in the next phase
       pcs = c(pcs, x)
-      pvalues = c(pvalues, a)
+      pvals = c(pvals, a)
 
     }#THEN
 
   }#FOR
 
-  # heuristic 2 : sort the candidates in decreasing p-value order
+  # heuristic 2 : sort the PC candidates in decreasing p-value order
   # this way we are more prone to remove less correlated nodes first
-  pcs = pcs[order(pvalues, decreasing = TRUE)]
+  ord = order(pvals, decreasing = TRUE)
+  pcs = pcs[ord]
+  pvals = pvals[ord]
 
-  pcs = c(known.good[!known.good %in% pcs], pcs)
-  pcs = c(whitelisted[!whitelisted %in% pcs], pcs)
-
+  nodes.to.check = pcs
   if (debug) {
-    cat(" * nodes to be tested for exclusion: '",
-          pcs[!(pcs %in% c(known.good, whitelisted))], "'.\n")
+    cat(" * nodes to be tested for exclusion: '", nodes.to.check, "'.\n")
   }#THEN
 
-  # Phase (II): remove X if Ind(T,X|Y) (1-degree d-separated nodes)
-  for (x in pcs[!(pcs %in% c(known.good, whitelisted))])
-    for (y in pcs[pcs != x]) {
+  pcs = union(known.good, pcs)
+  pcs = union(whitelisted, pcs)
+  pvals = c(rep(0, length(pcs) - length(pvals)), pvals)
 
-      a = conditional.test(t, x, c(y), data = data, test = test, B = B,
+  # Phase (II): remove X if Ind(T,X|Y) (1-degree d-separated nodes)
+  for (x in nodes.to.check) {
+
+    # heuristic 3 : sort the d-separating canditates in increasing p-value order
+    # this way we are more prone to remove with highly correlated nodes first
+    nodes.to.check.against = setdiff(pcs[order(pvals)], x)
+
+    for (y in nodes.to.check.against) {
+
+      a = conditional.test(t, x, y, data = data, test = test, B = B,
             alpha = alpha, debug = debug)
 
+      x.ind = which(pcs == x)
       if (a > alpha) {
 
-        pcs = pcs[pcs != x]
+        pcs = pcs[-x.ind]
+        pvals = pvals[-x.ind]
         dsep[[x]] = c(y)
 
         if (debug) {
-
           cat("  @ node", x, "removed from the parents and children superset\n")
-
         }#THEN
 
         break
 
       }#THEN
+      else {
+
+        if(a > pvals[x.ind])
+          pvals[x.ind] = a
+
+      }#ELSE
     }#FOR
+  }#FOR
 
   if(debug)
     cat(" * PCS =", pcs, "\n")
 
-  ret = list(pcs=pcs, dsep=dsep)
+  ret = list(pcs=pcs, dsep=dsep, pvals = pvals)
   return(ret)
 
 }#HYBRID.PC.DE.PCS
@@ -243,7 +268,7 @@ hybrid.pc.de.rsps = function(t, data, nodes, pcs, dsep, alpha, B, test,
   for (x in pcs) {
 
     rspsx = vector()
-    pvaluesx = vector()
+    pvalsx = vector()
     
     # heuristic 1 : sort by name to be deterministic
     nodes.to.check = nodes[!nodes %in% c(t, pcs)]
@@ -263,7 +288,7 @@ hybrid.pc.de.rsps = function(t, data, nodes, pcs, dsep, alpha, B, test,
       if (a <= alpha) {
 
         rspsx = c(rspsx, y)
-        pvaluesx = c(pvaluesx, a)
+        pvalsx = c(pvalsx, a)
 
         if (debug) {
 
@@ -276,7 +301,7 @@ hybrid.pc.de.rsps = function(t, data, nodes, pcs, dsep, alpha, B, test,
 
     # heuristic 2 : sort the candidates in decreasing p-value order
     # this way we are more prone to remove less correlated nodes first
-    rspsx = rspsx[order(pvaluesx, decreasing = TRUE)]
+    rspsx = rspsx[order(pvalsx, decreasing = TRUE)]
 
     # Phase (II): remove false positive spouses Y in the form T->X<-Z<-...<-Y
     # (descendants or ancestors of Z)

@@ -177,44 +177,45 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
 
   }#THEN
   else if (method == "hpc") {
-
-    nbr.join = check.nbr.join(nbr.join = extra.args$nbr.join, default = "OR")
-
+    
+    nbr.join = check.nbr.join(nbr.join = extra.args$nbr.join, default = "AND")
+    
     if (cluster.aware) {
-
+      
       nodes = names(x)
       mb = parLapply(cluster, as.list(nodes), hybrid.pc, data = x, alpha = alpha,
-            B = B, whitelist = whitelist, blacklist = blacklist,
-            test = test, debug = debug)
+                     B = B, whitelist = whitelist, blacklist = blacklist,
+                     test = test, debug = debug)
       names(mb) = nodes
-
+      
     }#THEN
     else if (optimized) {
-
+      
       nodes = names(x)
       mb = list()
       for(node in nodes) {
         backtracking = unlist(sapply(mb, function(x){ node %in% x$nbr  }))
         mb[[node]] = hybrid.pc(node, data = x, alpha = alpha,
-              B = B, whitelist = whitelist, blacklist = blacklist,
-              backtracking = backtracking, test = test, debug = debug)
+                               B = B, whitelist = whitelist, blacklist = blacklist,
+                               backtracking = backtracking, test = test, debug = debug)
       }#FOR
-
+      
     }#THEN
     else {
-
+      
       nodes = names(x)
       mb = lapply(as.list(nodes), hybrid.pc, data = x, alpha = alpha,
-            B = B, whitelist = whitelist, blacklist = blacklist,
-            test = test, debug = debug)
+                  B = B, whitelist = whitelist, blacklist = blacklist,
+                  test = test, debug = debug)
       names(mb) = nodes
-
+      
     }#ELSE
-
+    
     # check neighbourhood sets for consistency.
     mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
-          filter = nbr.join)
-
+                     filter = nbr.join)
+    
+  }#THEN
   }#THEN
 
   if (undirected) {

@@ -96,13 +96,13 @@ inter.incremental.association = function(x, whitelist, blacklist, test,
 }#INTER.INCREMENTAL.ASSOCIATION
 
 inter.ia.markov.blanket = function(x, data, nodes, alpha, B, whitelist, blacklist,
-  backtracking = NULL, test, debug = FALSE) {
+  backtracking = NULL, test, debug = FALSE, init.mb = NULL) {
 
   nodes = nodes[nodes != x]
   culprit = known.good = known.bad = c()
   whitelisted = nodes[sapply(nodes,
           function(y) { is.whitelisted(whitelist, c(x, y), either = TRUE) })]
-  mb = c()
+  mb = init.mb
   loop.counter = 1
   state = vector(5 * length(nodes), mode = "list")
 
@@ -139,7 +139,7 @@ inter.ia.markov.blanket = function(x, data, nodes, alpha, B, whitelist, blacklis
   # whitelisted nodes are included by default (if there's a direct arc
   # between them of course they are in each other's markov blanket).
   # arc direction is irrelevant here.
-  mb = whitelisted
+  mb = c(mb, whitelisted)
   nodes = nodes[!(nodes %in% mb)]
   # blacklist is not checked, not all nodes in a markov blanket must be
   # neighbours.
