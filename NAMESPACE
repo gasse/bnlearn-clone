@@ -5,6 +5,7 @@ export(
   "fast.iamb",
   "mmpc",
   "hpc",
+  "hpc.cached",
   "chow.liu",
   "aracne",
   "hc",

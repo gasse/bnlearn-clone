@@ -1,9 +1,8 @@
 
-# TODO : support cache for the last S statistic calls?
 # TODO : improve backtracking by adding it in the OR phase?
 
 hybrid.pc = function(t, data, whitelist, blacklist, test, alpha,
-  B, backtracking = NULL, debug = FALSE) {
+  B, nbr.method, backtracking = NULL, debug = FALSE) {
 
   nodes = names(data)
 
@@ -23,24 +22,23 @@ hybrid.pc = function(t, data, whitelist, blacklist, test, alpha,
   #optimisation : 2 nodes in PC and no SP --> PC == PCS
   if(length(c(pcs, rsps)) < 3)
       return(list(nbr = pcs, mb = pcs))
+  
+  # 3. [PC] Get the Parents and Children from nodes within PCS and RSPS
+  pc = hybrid.pc.nbr.search(t = t, data = data, nodes = c(t, pcs, rsps),
+                            test = test, alpha = alpha, B = B,
+                            whitelist = whitelist, blacklist = blacklist,
+                            backtracking = backtracking, debug = debug,
+                            method = nbr.method)
 
-  # 3. [IAMB] Get the Markov boundary from nodes within PCS and RSPS
-  mb = inter.ia.markov.blanket(t, data, nodes = c(t, pcs, rsps), alpha, B,
-        whitelist, blacklist, backtracking, test, debug)
-
-  # 4. [PC] Filter the true parents and children from the MB
-  pc = hybrid.pc.filter(t, pcs = mb, rsps = NULL, data, alpha, B, whitelist,
-        blacklist, backtracking, test, debug)
-
-  # 5. [Neighbourhood OR] Detect and add false-negatives to PC, by checking if
+  # 4. [Neighbourhood OR] Detect and add false-negatives to PC, by checking if
   #     the target is present in potential neighbours' neighbours
   for (node in pcs[!pcs %in% pc]) {
 
-    mbn = inter.ia.markov.blanket(node, data, nodes = c(t, pcs, rsps), alpha,
-          B, whitelist, blacklist, backtracking = NULL, test, debug)
-
-    pcn = hybrid.pc.filter(t = node, pcs = mbn, rsps = NULL, data, alpha, B,
-          whitelist, blacklist, backtracking = NULL, test, debug)
+    pcn = hybrid.pc.nbr.search(t = node, data = data, nodes = c(t, pcs, rsps),
+                               test = test, alpha = alpha, B = B,
+                               whitelist = whitelist, blacklist = blacklist,
+                               backtracking = NULL, debug = debug,
+                               method = nbr.method)
 
     # Logical OR : add the nodes from my PCS which I don't see
     # in my PC but which see me in theirs
@@ -67,7 +65,7 @@ hybrid.pc = function(t, data, whitelist, blacklist, test, alpha,
 
 # PCS + RSP filtering for neighbours too
 hybrid.pc.2 = function(t, data, whitelist, blacklist, test, alpha,
-  B, backtracking = NULL, debug = FALSE) {
+  B, nbr.method, backtracking = NULL, debug = FALSE) {
 
   nodes = names(data)
 
@@ -87,16 +85,15 @@ hybrid.pc.2 = function(t, data, whitelist, blacklist, test, alpha,
   #optimisation : 2 nodes in PC and no SP --> PC == PCS
   if(length(c(pcs, rsps)) < 3)
     return(list(nbr = pcs, mb = pcs))
+  
+  # 3. [PC] Get the Parents and Children from nodes within PCS and RSPS
+  pc = hybrid.pc.nbr.search(t = t, data = data, nodes = c(t, pcs, rsps),
+                            test = test, alpha = alpha, B = B,
+                            whitelist = whitelist, blacklist = blacklist,
+                            backtracking = backtracking, debug = debug,
+                            method = nbr.method)
 
-  # 3. [IAMB] Get the Markov boundary from nodes within PCS and RSPS
-  mb = inter.ia.markov.blanket(t, data, nodes = c(t, pcs, rsps), alpha, B,
-        whitelist, blacklist, backtracking, test, debug)
-
-  # 4. [PC] Filter the true parents and children from the MB
-  pc = hybrid.pc.filter(t, pcs = mb, rsps = NULL, data, alpha, B, whitelist,
-        blacklist, backtracking, test, debug)
-
-  # 5. [Neighbourhood OR] Detect and add false-negatives to PC, by checking if
+  # 4. [Neighbourhood OR] Detect and add false-negatives to PC, by checking if
   #     the target is present in potential neighbours' neighbours
   for (node in pcs[!pcs %in% pc]) {
 
@@ -108,11 +105,11 @@ hybrid.pc.2 = function(t, data, whitelist, blacklist, test, alpha,
     rspsn = hybrid.pc.de.rsps(node, data, c(t, pcs, rsps), pcsn, dsepn, alpha,
           B, test, debug)
 
-    mbn = inter.ia.markov.blanket(node, data, nodes = c(t, pcsn, rspsn), alpha,
-          B, whitelist, blacklist, backtracking = NULL, test, debug)
-
-    pcn = hybrid.pc.filter(t = node, pcs = mbn, rsps = NULL, data, alpha, B,
-          whitelist, blacklist, backtracking = NULL, test, debug)
+    pcn = hybrid.pc.nbr.search(t = node, data = data, nodes = c(t, pcsn, rspsn),
+                               test = test, alpha = alpha, B = B,
+                               whitelist = whitelist, blacklist = blacklist,
+                               backtracking = NULL, debug = debug,
+                               method = nbr.method)
 
     # Logical OR : add the nodes from my PCS which I don't see
     # in my PC but which see me in theirs
@@ -133,8 +130,154 @@ hybrid.pc.2 = function(t, data, whitelist, blacklist, test, alpha,
 
 }#HYBRID.PC.2
 
+# IAPC + reverse MMPC
+hybrid.pc.3 = function(t, data, whitelist, blacklist, test, alpha,
+                       B, backtracking = NULL, debug = FALSE) {
+
+  nodes = names(data)
+
+  # 1. [PCS] Search parents and children superset
+  tmp = hybrid.pc.de.pcs(t, data, nodes, alpha, B, whitelist, blacklist,
+                         backtracking, test, debug)
+  pcs = tmp$pcs
+  dsep = tmp$dsep
+  pvals = tmp$pvals
+
+  #optimisation : 0 or 1 node in PCS --> PC == PCS
+  if(length(pcs) < 2)
+    return(list(nbr = pcs, mb = NULL))
+
+  # 2. [RSPS] Search remaining spouses superset, those not already in PCS
+  rsps = hybrid.pc.de.rsps(t, data, nodes, pcs, dsep, alpha, B, test, debug)
+
+  # optimisation : 2 nodes in PC and no SP --> PC == PCS
+  if(length(c(pcs, rsps)) < 3)
+    return(list(nbr = pcs, mb = pcs))
+
+  #optimisation : avoid the 2 first rounds of IAMB
+  init.mb = pcs[order(pvals)][1:min(length(pcs), 2)]
+
+  # 3. [IAMB] Get the Markov boundary from nodes within PCS and RSPS
+  mb = inter.ia.markov.blanket(t, data, nodes = c(t, pcs, rsps), alpha, B,
+                               whitelist, blacklist, backtracking, test, debug,
+                               init.mb = init.mb)
+
+  # 4. [PC] Filter the true parents and children from the MB
+  pc = hybrid.pc.filter(t, pcs = mb, rsps = NULL, data, alpha, B, whitelist,
+                        blacklist, backtracking, test, debug)
+
+  # 5. [Neighbourhood OR] Detect and add false-negatives to PC, by checking if
+  #     the target is present in potential neighbours' neighbours
+  for (node in pcs[!pcs %in% pc]) {
+
+    pcn = maxmin.pc.forward.phase(x = node, data = data, nodes = c(t, pcs, rsps),
+                                  alpha = alpha, B = B, whitelist = whitelist,
+                                  blacklist = blacklist, backtracking = NULL,
+                                  test = test, debug = debug)
+
+    pcn = hybrid.pc.filter(t = node, pcs = pcn, rsps = NULL, data = data,
+                           alpha = alpha, B = B, whitelist = whitelist,
+                           blacklist = blacklist, backtracking = NULL,
+                           test = test, debug = debug)
+
+    # Logical OR : add the nodes from my PCS which I don't see
+    # in my PC but which see me in theirs
+    if(t %in% pcn) {
+      
+      pc = c(pc, node)
+      
+      if (debug)
+        cat("    @", node, "added to the parents and children. (HPC's OR)\n")
+      
+    }#THEN
+    
+  }#FOR
+  
+  res = list(nbr = pc, mb = c(pcs, rsps))
+  
+  return(res)
+
+}#HYBRID.PC.3
+
+# Local TABU
+hybrid.pc.4 = function(t, data, whitelist, blacklist, test, alpha,
+                       B, backtracking = NULL, debug = FALSE) {
+
+  nodes = names(data)
+
+  # 1. [PCS] Search parents and children superset
+  tmp = hybrid.pc.de.pcs(t, data, nodes, alpha, B, whitelist, blacklist,
+                         backtracking, test, debug)
+  pcs = tmp$pcs
+  dsep = tmp$dsep
+  pvals = tmp$pvals
+  
+  #optimisation : 0 or 1 node in PCS --> PC == PCS
+  if(length(pcs) < 2)
+    return(list(nbr = pcs, mb = NULL))
+
+  # 2. [RSPS] Search remaining spouses superset, those not already in PCS
+  rsps = hybrid.pc.de.rsps(t, data, nodes, pcs, dsep, alpha, B, test, debug)
+
+  # optimisation : 2 nodes in PC and no SP --> PC == PCS
+  if(length(c(pcs, rsps)) < 3)
+    return(list(nbr = pcs, mb = pcs))
+
+  local.bn = tabu.search(x = data[c(t, pcs, rsps)],
+                         start = empty.graph(nodes = c(t, pcs, rsps)),
+                         score = "bde", extra.args=list(iss=as.integer(10)),
+                         tabu = as.integer(100), max.iter = as.integer(15),
+                         optimized = TRUE, blacklist=NULL, whitelist=NULL,
+                         debug = debug)
+
+  res = list(nbr = local.bn$nodes[[t]]$nbr, mb = c(pcs, rsps))
+  
+  return(res)
+  
+}#HYBRID.PC.4
+
+hybrid.pc.nbr.search = function(t, data, nodes, test, alpha, B,
+                                whitelist = NULL, blacklist = NULL,
+                                backtracking = NULL, debug = FALSE,
+                                method = "inter.iapc") {
+
+  pc = c()
+  if (method == "inter.iapc") {
+
+    mb = inter.ia.markov.blanket(t, data, nodes, alpha, B, whitelist, blacklist,
+                                 backtracking, test, debug)
+    pc = hybrid.pc.filter(t, pcs = mb, rsps = NULL, data, alpha, B, whitelist,
+                          blacklist, backtracking, test, debug)
+
+  }#THEN
+  else if (method == "iapc") {
+
+    mb = ia.markov.blanket(t, data, nodes, alpha, B, whitelist, blacklist,
+                           backtracking, test, debug)
+    pc = hybrid.pc.filter(t, pcs = mb, rsps = NULL, data, alpha, B, whitelist,
+                          blacklist, backtracking, test, debug)
+
+  }#THEN
+  else if (method == "fast.iapc") {
+
+    mb = fast.ia.markov.blanket(t, data, nodes, alpha, B, whitelist, blacklist,
+                                backtracking, test, debug)
+    pc = hybrid.pc.filter(t, pcs = mb, rsps = NULL, data, alpha, B, whitelist,
+                          blacklist, backtracking, test, debug)
+
+  }#THEN
+  else {
+
+    stop(paste("the neighbourhood method ", method, " is not valid.", sep=""))
+
+  }#ELSE
+
+  return(pc)
+
+}#HYBRID.PC.NBR.SEARCH
+
 hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
-  backtracking = NULL, test, debug = FALSE) {
+                            backtracking = NULL, test, debug = FALSE) {
 
   pcs = vector()
   pvals = vector()
@@ -169,7 +312,7 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
           nodes[!(nodes %in% c(t, known.good))], "'.\n")
   }#THEN
 
-  nodes.to.check = nodes[!(nodes %in% c(t, known.good, whitelisted, blacklisted))]
+  nodes.to.check = setdiff(nodes, c(t, known.good, whitelisted, blacklisted))
 
   # heuristic 1 : sort by name to be deterministic
   nodes.to.check = nodes.to.check[order(nodes.to.check)]
@@ -207,6 +350,10 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
   pcs = union(known.good, pcs)
   pcs = union(whitelisted, pcs)
   pvals = c(rep(0, length(pcs) - length(pvals)), pvals)
+  
+#   # heuristic 3 : sort the d-separating canditates in increasing p-value order
+#   # this way we are more prone to remove with highly correlated nodes first
+#   nodes.to.check.against = pcs[order(pvals)]
 
   # Phase (II): remove X if Ind(T,X|Y) (1-degree d-separated nodes)
   for (x in nodes.to.check) {
@@ -214,8 +361,10 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
     # heuristic 3 : sort the d-separating canditates in increasing p-value order
     # this way we are more prone to remove with highly correlated nodes first
     nodes.to.check.against = setdiff(pcs[order(pvals)], x)
-
+    
     for (y in nodes.to.check.against) {
+      
+#     for (y in setdiff(nodes.to.check.against, x)) {
 
       a = conditional.test(t, x, y, data = data, test = test, B = B,
             alpha = alpha, debug = debug)
@@ -242,9 +391,6 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
       }#ELSE
     }#FOR
   }#FOR
-
-  if(debug)
-    cat(" * PCS =", pcs, "\n")
 
   ret = list(pcs=pcs, dsep=dsep, pvals = pvals)
   return(ret)
@@ -427,9 +573,6 @@ hybrid.pc.filter = function(t, pcs, rsps, data, alpha, B = NULL, whitelist, blac
     # whitelisted nodes are included (arc orientation is irrelevant),
     # same for known good nodes
     pc = unique(c(pc, whitelisted, known.good))
-
-    if (debug)
-      cat(" * PC =", pc, "\n")
 
   }#THEN
 

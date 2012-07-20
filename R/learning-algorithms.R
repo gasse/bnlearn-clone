@@ -178,14 +178,15 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
   }#THEN
   else if (method == "hpc") {
     
-    nbr.join = check.nbr.join(nbr.join = extra.args$nbr.join, default = "AND")
+    nbr.join = check.nbr.join(nbr.join = extra.args$nbr.join)
+    nbr.method = check.nbr.method(extra.args$nbr.method)
     
     if (cluster.aware) {
       
       nodes = names(x)
       mb = parLapply(cluster, as.list(nodes), hybrid.pc, data = x, alpha = alpha,
                      B = B, whitelist = whitelist, blacklist = blacklist,
-                     test = test, debug = debug)
+                     test = test, debug = debug, nbr.method = nbr.method)
       names(mb) = nodes
       
     }#THEN
@@ -196,8 +197,9 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
       for(node in nodes) {
         backtracking = unlist(sapply(mb, function(x){ node %in% x$nbr  }))
         mb[[node]] = hybrid.pc(node, data = x, alpha = alpha,
-                               B = B, whitelist = whitelist, blacklist = blacklist,
-                               backtracking = backtracking, test = test, debug = debug)
+                               B = B, whitelist = whitelist,blacklist = blacklist,
+                               backtracking = backtracking, test = test,
+                               debug = debug, nbr.method = nbr.method)
       }#FOR
       
     }#THEN
@@ -216,6 +218,23 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
                      filter = nbr.join)
     
   }#THEN
+  else if (method == "hpc.cached") {
+    
+    nbr.join = "AND"
+    nbr.method = check.nbr.method(extra.args$nbr.method)
+
+    cache = new.env(parent=emptyenv())
+    nodes = names(x)
+    mb = lapply(as.list(nodes), hybrid.pc.cached, data = x, alpha = alpha,
+                B = B, whitelist = whitelist, blacklist = blacklist,
+                test = test, debug = debug, nbr.method = nbr.method,
+                cache = cache)
+    names(mb) = nodes
+    
+    # check neighbourhood sets for consistency.
+    mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
+                     filter = nbr.join)
+    
   }#THEN
 
   if (undirected) {
@@ -499,8 +518,9 @@ mi.matrix = function(x, whitelist = NULL, blacklist = NULL, method, mi = NULL,
 }#MI.MATRIX
 
 # learn the markov blanket of a single node.
-mb.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
-    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
+mb.backend = function(x, node, method, method.args = NULL, whitelist = NULL,
+                      blacklist = NULL, test = NULL, alpha = 0.05, B = NULL,
+                      debug = FALSE, optimized = TRUE) {
 
   assign(".test.counter", 0, envir = .GlobalEnv)
   assign(".test.counter.permut", 0, envir = .GlobalEnv)
@@ -525,6 +545,8 @@ mb.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
   # sanitize whitelist and blacklist, if any.
   whitelist = build.whitelist(whitelist, nodes)
   blacklist = build.blacklist(blacklist, whitelist, nodes)
+
+  check.unused.args(method.args, mb.method.extra.args[[method]])
 
   # call the right backend.
   if (method == "gs") {
@@ -561,8 +583,9 @@ mb.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
 }#MB.BACKEND
 
 # learn the parents and children of a single node.
-pc.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
-    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
+pc.backend = function(x, node, method, method.args = NULL, whitelist = NULL,
+                      blacklist = NULL, test = NULL, alpha = 0.05, B = NULL,
+                      debug = FALSE, optimized = TRUE) {
 
   assign(".test.counter", 0, envir = .GlobalEnv)
   assign(".test.counter.permut", 0, envir = .GlobalEnv)
@@ -588,6 +611,8 @@ pc.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
   whitelist = build.whitelist(whitelist, nodes)
   blacklist = build.blacklist(blacklist, whitelist, nodes)
 
+  check.unused.args(method.args, pc.method.extra.args[[method]])
+
   # call the right backend.
   if (method == "mmpc") {
 
@@ -606,19 +631,33 @@ pc.backend = function(x, node, method, whitelist = NULL, blacklist = NULL,
   }#THEN
   else if (method == "hpc") {
 
+    nbr.method = check.nbr.method(method.args$nbr.method)
+
     pc = hybrid.pc(t = node, data = x, alpha = alpha, B = B,
-          whitelist = whitelist, blacklist = blacklist,
-          backtracking = NULL, test = test, debug = debug)
+                   whitelist = whitelist, blacklist = blacklist,
+                   backtracking = NULL, test = test, debug = debug,
+                   nbr.method = nbr.method)
     pc = pc$nbr
 
   }#THEN
   else if (method == "hpc2") {
-
+    
+    nbr.method = check.nbr.method(method.args$nbr.method)
+    
     pc = hybrid.pc.2(t = node, data = x, alpha = alpha, B = B,
-          whitelist = whitelist, blacklist = blacklist,
-          backtracking = NULL, test = test, debug = debug)
+                     whitelist = whitelist, blacklist = blacklist,
+                     backtracking = NULL, test = test, debug = debug,
+                     nbr.method = nbr.method)
     pc = pc$nbr
-
+    
+  }#THEN
+  else if (method == "hpc4") {
+    
+    pc = hybrid.pc.4(t = node, data = x, alpha = alpha, B = B,
+                     whitelist = whitelist, blacklist = blacklist,
+                     backtracking = NULL, test = test, debug = debug)
+    pc = pc$nbr
+    
   }#THEN
   else if (method == "gpc0") {
 

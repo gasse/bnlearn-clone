@@ -60,15 +60,29 @@ mmpc = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
 
 # HPC frontend.
 hpc = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
-    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE,
-    strict = FALSE, undirected = FALSE, nbr.join = "AND") {
+               test = NULL, alpha = 0.05, B = NULL, debug = FALSE,
+               optimized = TRUE, strict = FALSE, undirected = FALSE,
+               nbr.join = "AND", nbr.method = "inter.iapc") {
 
   bnlearn(x = x, cluster = cluster, whitelist = whitelist,
-    blacklist = blacklist, test = test, alpha = alpha, B = B,
-    method = "hpc", debug = debug, optimized = optimized,
-    strict = strict, undirected = undirected, nbr.join = nbr.join)
+          blacklist = blacklist, test = test, alpha = alpha, B = B,
+          method = "hpc", debug = debug, optimized = optimized,
+          strict = strict, undirected = undirected, nbr.join = nbr.join,
+          nbr.method = nbr.method)
 
 }#HPC
+
+# HPC frontend (cached).
+hpc.cached = function(x, whitelist = NULL, blacklist = NULL,
+                      test = NULL, alpha = 0.05, B = NULL, debug = FALSE,
+                      strict = FALSE, undirected = FALSE, nbr.method = "inter.iapc") {
+
+  bnlearn(x = x, cluster = NULL, whitelist = whitelist,
+          blacklist = blacklist, test = test, alpha = alpha, B = B,
+          method = "hpc.cached", debug = debug, strict = strict,
+          undirected = undirected, nbr.method = nbr.method)
+
+}#HPC.CACHE
 
 # ARACNE frontend.
 aracne = function(x, whitelist = NULL, blacklist = NULL, mi = NULL,
@@ -147,10 +161,10 @@ mmhc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
 h2pc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
     score = NULL, alpha = 0.05, B = NULL, ..., tabu = 100,
     max.tabu = 15, optimized = TRUE, strict = FALSE, debug = FALSE,
-    nbr.join = "AND") {
+    nbr.join = "AND", nbr.method = "inter.iapc") {
 
   restrict.args = list(test = test, alpha = alpha, B = B, strict = strict,
-        nbr.join = nbr.join)
+        nbr.join = nbr.join, nbr.method = nbr.method)
   maximize.args = c(list(...), tabu = tabu, max.tabu = max.tabu)
 
   hybrid.search(x, whitelist = whitelist, blacklist = blacklist,
@@ -162,21 +176,23 @@ h2pc = function(x, whitelist = NULL, blacklist = NULL, test = NULL,
 
 # Frontend for the Markov blanket learning algorithms.
 learn.mb = function(x, node, method, whitelist = NULL, blacklist = NULL,
-    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
+                    test = NULL, alpha = 0.05, B = NULL, debug = FALSE,
+                    optimized = TRUE, method.args = NULL) {
 
-  mb.backend(x, node = node, method = method, whitelist = whitelist,
-    blacklist = blacklist, test = test, alpha = alpha, B = B, debug = debug,
-    optimized = optimized)
+  mb.backend(x, node = node, method = method, method.args = method.args,
+             whitelist = whitelist, blacklist = blacklist, test = test,
+             alpha = alpha, B = B, debug = debug, optimized = optimized)
 
 }#LEARN.MB
 
 # Frontend for the parents and children learning algorithms.
 learn.pc = function(x, node, method, whitelist = NULL, blacklist = NULL,
-    test = NULL, alpha = 0.05, B = NULL, debug = FALSE, optimized = TRUE) {
+                    test = NULL, alpha = 0.05, B = NULL, debug = FALSE,
+                    optimized = TRUE, method.args = NULL) {
 
-  pc.backend(x, node = node, method = method, whitelist = whitelist,
-    blacklist = blacklist, test = test, alpha = alpha, B = B, debug = debug,
-    optimized = optimized)
+  pc.backend(x, node = node, method = method, method.args = method.args,
+             whitelist = whitelist, blacklist = blacklist, test = test,
+             alpha = alpha, B = B, debug = debug, optimized = optimized)
 
 }#LEARN.PC
 

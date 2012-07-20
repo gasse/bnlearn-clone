@@ -24,7 +24,7 @@ available.continuous.mi = c("mi-g")
 available.mi = c(available.discrete.mi, available.continuous.mi)
 
 markov.blanket.algorithms = c("gs", "iamb", "fast.iamb", "inter.iamb")
-local.search.algorithms = c("mmpc", "hpc", "hpc2", "hpc3", "hpc4", "gpc0",
+local.search.algorithms = c("mmpc", "hpc", "hpc2", "hpc3", "hpc4", "hpc.cached", "gpc0",
   "rpc0", "rpc1", "2npc", "pcs-rsps", "iapc", "fast.iapc",
   "inter.iapc")
 constraint.based.algorithms = c(markov.blanket.algorithms, local.search.algorithms)
@@ -72,8 +72,20 @@ method.extra.args = list(
   'tabu' = c("max.iter", "tabu", "max.tabu"),
   'hpc' = c("nbr.join"),
   'hpc2' = c("nbr.join"),
+  'hpc' = c("nbr.join", "nbr.method"),
+  'hpc2' = c("nbr.join", "nbr.method"),
+  'hpc3' = c("nbr.join"),
   'hpc4' = c("nbr.join"),
-  'h2pc' = c("nbr.join")
+  "hpc.cached" = c("nbr.join", "nbr.method"),
+  'h2pc' = c("nbr.join", "nbr.method")
+)
+
+mb.method.extra.args = list(
+)
+
+pc.method.extra.args = list(
+  'hpc' = c("nbr.method"),
+  'hpc2' = c("nbr.method")
 )
 
 test.labels = c(

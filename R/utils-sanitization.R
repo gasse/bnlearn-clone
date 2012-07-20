@@ -1859,3 +1859,14 @@ check.nbr.join = function(nbr.join, default = "AND") {
   return(nbr.join)
 
 }#CHECK.NBR.JOIN
+
+check.nbr.method = function(nbr.method, default = "inter.iapc") {
+  
+  if (missing(nbr.method) || is.null(nbr.method))
+    nbr.method = default
+
+  nbr.method = check.learning.algorithm(algorithm=nbr.method,
+                                        class="local.search")
+
+  return(nbr.method)
+
