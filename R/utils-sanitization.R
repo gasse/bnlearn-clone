@@ -1870,3 +1870,4 @@ check.nbr.method = function(nbr.method, default = "inter.iapc") {
 
   return(nbr.method)
 
+}#CHECK.NBR.METHOD
