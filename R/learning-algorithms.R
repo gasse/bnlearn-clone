@@ -183,39 +183,28 @@ bnlearn = function(x, cluster = NULL, whitelist = NULL, blacklist = NULL,
     
     if (cluster.aware) {
       
-      nodes = names(x)
-      mb = parLapply(cluster, as.list(nodes), hybrid.pc, data = x, alpha = alpha,
-                     B = B, whitelist = whitelist, blacklist = blacklist,
-                     test = test, debug = debug, nbr.method = nbr.method)
-      names(mb) = nodes
+      mb = hybrid.pc.global.cluster(
+        data = x, whitelist = whitelist, blacklist = blacklist, test = test,
+        alpha = alpha, B = B, strict = strict, nbr.method = nbr.method,
+        nbr.join = nbr.join, debug=debug)
       
     }#THEN
     else if (optimized) {
       
-      nodes = names(x)
-      mb = list()
-      for(node in nodes) {
-        backtracking = unlist(sapply(mb, function(x){ node %in% x$nbr  }))
-        mb[[node]] = hybrid.pc(node, data = x, alpha = alpha,
-                               B = B, whitelist = whitelist,blacklist = blacklist,
-                               backtracking = backtracking, test = test,
-                               debug = debug, nbr.method = nbr.method)
-      }#FOR
+      mb = hybrid.pc.global.optimized(
+        data = x, whitelist = whitelist, blacklist = blacklist, test = test,
+        alpha = alpha, B = B, strict = strict, nbr.method = nbr.method,
+        nbr.join = nbr.join, debug=debug)
       
     }#THEN
     else {
       
-      nodes = names(x)
-      mb = lapply(as.list(nodes), hybrid.pc, data = x, alpha = alpha,
-                  B = B, whitelist = whitelist, blacklist = blacklist,
-                  test = test, debug = debug)
-      names(mb) = nodes
+      mb = hybrid.pc.global(
+        data = x, whitelist = whitelist, blacklist = blacklist, test = test,
+        alpha = alpha, B = B, strict = strict, nbr.method = nbr.method,
+        nbr.join = nbr.join, debug=debug)
       
     }#ELSE
-    
-    # check neighbourhood sets for consistency.
-    mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
-                     filter = nbr.join)
     
   }#THEN
   else if (method == "hpc.cached") {

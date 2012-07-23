@@ -1,5 +1,71 @@
 
-# TODO : improve backtracking by adding it in the OR phase?
+hybrid.pc.global = function(data, whitelist, blacklist, test,
+  alpha, B, strict, nbr.method, nbr.join, debug=FALSE) {
+  
+  nodes = names(data)
+  
+  mb = lapply(as.list(nodes), hybrid.pc, data = data, alpha = alpha,
+              B = B, whitelist = whitelist, blacklist = blacklist,
+              test = test, debug = debug, nbr.method = nbr.method)
+  names(mb) = nodes
+  
+  # check neighbourhood sets for consistency.
+  mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
+                   filter = nbr.join)
+  
+}#HYBRID.PC.GLOBAL
+
+hybrid.pc.global.optimized = function(data, whitelist, blacklist, test,
+  alpha, B, strict, nbr.method, nbr.join, debug=FALSE) {
+  
+  nodes = names(data)
+  mb = list()
+  
+  for(node in nodes) {
+    
+    backtracking = unlist(sapply(mb, function(x){ node %in% x$nbr  }))
+    
+    # depending on the neighbourhood consistency filter used, a full
+    # backtracking is prohibited.
+    #   AND filter : known good backtracking is forbidden
+    #   OR filter : known bad backtracking is forbidden
+    if (!is.null(backtracking)) {
+      if (nbr.join == "AND")
+        backtracking = backtracking[!backtracking]
+      if (nbr.join == "OR")
+        backtracking = backtracking[backtracking]
+      if (length(backtracking) == 0)
+        backtracking = NULL
+    }#THEN
+    
+    mb[[node]] = hybrid.pc(node, data = data, alpha = alpha,
+                           B = B, whitelist = whitelist, blacklist = blacklist,
+                           backtracking = backtracking, test = test,
+                           debug = debug, nbr.method = nbr.method)
+    
+  }#FOR
+  
+  # check neighbourhood sets for consistency.
+  mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
+                   filter = nbr.join)
+  
+}#HYBRID.PC.GLOBAL.OPTIMIZED
+
+hybrid.pc.global.cluster = function(data, whitelist, blacklist, test,
+  alpha, B, strict, nbr.method, nbr.join, debug=FALSE) {
+  
+  nodes = names(data)
+  
+  mb = parLapply(cluster, as.list(nodes), hybrid.pc, data = data, alpha = alpha,
+                 B = B, whitelist = whitelist, blacklist = blacklist,
+                 test = test, debug = debug, nbr.method = nbr.method)
+  names(mb) = nodes
+  
+  # check neighbourhood sets for consistency.
+  mb = bn.recovery(mb, nodes = nodes, strict = strict, debug = debug,
+                   filter = nbr.join)
+  
+}#HYBRID.PC.GLOBAL.CLUSTER
 
 hybrid.pc = function(t, data, whitelist, blacklist, test, alpha,
   B, nbr.method, backtracking = NULL, debug = FALSE) {
