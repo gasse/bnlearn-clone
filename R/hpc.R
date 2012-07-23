@@ -495,14 +495,16 @@ hybrid.pc.de.rsps = function(t, data, nodes, pcs, dsep, alpha, B, test,
 hybrid.pc.filter = function(t, pcs, rsps, data, alpha, B = NULL, whitelist, blacklist,
   backtracking = NULL, test, debug = FALSE) {
 
-  # markov boundary superset (markov blanket)
-  mbs = c(pcs, rsps)
+  nodes = names(data)
 
   known.good = c()
-  blacklisted = mbs[vapply(mbs,
-          function(x) { is.blacklisted(blacklist, c(t, x), both = TRUE) }, logical(1))]
-  whitelisted = mbs[vapply(mbs,
-          function(x) { is.whitelisted(whitelist, c(t, x), either = TRUE) }, logical(1))]
+  blacklisted = nodes[vapply(nodes, function(x) {
+    is.blacklisted(blacklist, c(t, x), both = TRUE) }, logical(1))]
+  whitelisted = nodes[vapply(nodes, function(x) {
+    is.whitelisted(whitelist, c(t, x), either = TRUE) }, logical(1))]
+  
+  # markov boundary superset (markov blanket)
+  mbs = c(pcs, rsps)
 
   # use backtracking for a further screening of the nodes to be checked.
   # known bad nodes are not used, we want to keep it possible to add them,
@@ -527,9 +529,13 @@ hybrid.pc.filter = function(t, pcs, rsps, data, alpha, B = NULL, whitelist, blac
       cat(" * known good (backtracking): '", known.good, "'.\n")
 
   }#THEN
-
-  # blacklisted nodes are removed if both directed arcs are banned
+  
+  # blacklisted nodes are removed
   pcs = pcs[!(pcs %in% blacklisted)]
+  
+  # whitelisted nodes are added
+  pcs = union(pcs, whitelisted)
+  mbs = union(mbs, whitelisted)
   
   pc = vector()
   if (length(mbs) > 0) {
