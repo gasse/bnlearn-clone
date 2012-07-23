@@ -391,6 +391,10 @@ hybrid.pc.de.pcs = function(t, data, nodes, alpha, B, whitelist, blacklist,
       }#ELSE
     }#FOR
   }#FOR
+  
+  if (debug) {
+    cat(" * PCS of", t, "= '", pcs, "'.\n")
+  }#THEN
 
   ret = list(pcs=pcs, dsep=dsep, pvals = pvals)
   return(ret)

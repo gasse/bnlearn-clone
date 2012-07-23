@@ -39,6 +39,10 @@ hybrid.pc.cached = function(t, data, whitelist, blacklist, test, alpha, B,
 
   pcs = cache$pcs[[t]]
   dsep = cache$dsep[[t]]
+  
+  if (debug) {
+    cat("- PCS of", t, "= '", pcs, "'.\n")
+  }#THEN
 
   #optimisation : 0 or 1 node in PCS --> PC == PCS
   if(length(pcs) < 2)
